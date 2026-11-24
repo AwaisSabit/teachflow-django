@@ -1,7 +1,7 @@
 """Admin for orders."""
 from django.contrib import admin
 
-from .models import Coupon, Order, OrderItem
+from .models import CartItem, Coupon, Order, OrderItem, WishlistItem
 
 
 class OrderItemInline(admin.TabularInline):
@@ -18,7 +18,29 @@ class CouponAdmin(admin.ModelAdmin):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ("order_number", "student", "total", "created_at")
-    list_filter = ("created_at",)
+    list_display = (
+        "order_number",
+        "student",
+        "total",
+        "coupon",
+        "discount_amount",
+        "created_at",
+    )
+    list_filter = ("created_at", "coupon")
     search_fields = ("order_number", "student__username")
+    date_hierarchy = "created_at"
     inlines = [OrderItemInline]
+
+
+@admin.register(WishlistItem)
+class WishlistItemAdmin(admin.ModelAdmin):
+    list_display = ("student", "course", "added_at")
+    list_filter = ("course",)
+    search_fields = ("student__username", "course__title")
+
+
+@admin.register(CartItem)
+class CartItemAdmin(admin.ModelAdmin):
+    list_display = ("student", "course", "added_at")
+    list_filter = ("course",)
+    search_fields = ("student__username", "course__title")
