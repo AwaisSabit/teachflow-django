@@ -3,6 +3,8 @@
 Every helper builds a small, valid object with sensible defaults;
 pass overrides for the fields a test cares about.
 """
+import uuid
+
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -10,14 +12,24 @@ User = get_user_model()
 TEST_PASSWORD = "LearnPass123!"
 
 
-def make_user(username="layla", password=TEST_PASSWORD, **kwargs):
+def _unique(prefix):
+    """A short unique suffix, so calling a factory twice in one test
+    never collides on a unique field."""
+    return f"{prefix}-{uuid.uuid4().hex[:6]}"
+
+
+def make_user(username=None, password=TEST_PASSWORD, **kwargs):
     """A student (the default role)."""
+    if username is None:
+        username = _unique("layla")
     kwargs.setdefault("email", f"{username}@example.com")
     return User.objects.create_user(username=username, password=password, **kwargs)
 
 
-def make_instructor(username="bilal", password=TEST_PASSWORD, **kwargs):
+def make_instructor(username=None, password=TEST_PASSWORD, **kwargs):
     """An instructor, able to create courses."""
+    if username is None:
+        username = _unique("bilal")
     kwargs.setdefault("email", f"{username}@example.com")
     return User.objects.create_user(
         username=username,
@@ -27,9 +39,11 @@ def make_instructor(username="bilal", password=TEST_PASSWORD, **kwargs):
     )
 
 
-def make_category(name="Python", **kwargs):
+def make_category(name=None, **kwargs):
     from apps.courses.models import Category
 
+    if name is None:
+        name = _unique("Python")
     kwargs.setdefault("description", f"Learn {name}.")
     return Category.objects.create(name=name, **kwargs)
 
