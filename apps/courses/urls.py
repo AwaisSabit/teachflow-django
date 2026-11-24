@@ -15,4 +15,7 @@ urlpatterns = [
     path("<int:pk>/submit/", views.submit_for_review, name="submit"),
     path("<int:pk>/publish/", views.publish, name="publish"),
     path("<int:pk>/withdraw/", views.withdraw, name="withdraw"),
+    path("<int:course_pk>/sections/create/", views.section_create, name="section_create"),
+    path("sections/<int:pk>/edit/", views.section_edit, name="section_edit"),
+    path("sections/<int:pk>/delete/", views.section_delete, name="section_delete"),
 ]

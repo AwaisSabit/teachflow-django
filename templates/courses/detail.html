@@ -27,6 +27,9 @@
     {% endif %}
 
     <h2 class="h4 mt-4">Course curriculum</h2>
+    {% if user.is_authenticated and user == course.instructor %}
+      <p><a class="btn btn-sm btn-outline-primary" href="{% url 'courses:section_create' course.pk %}">Add a section</a></p>
+    {% endif %}
     {% if course.sections.all %}
       {% for section in course.sections.all %}
         <h3 class="h5 mt-3">{{ section.order }}. {{ section.title }}</h3>

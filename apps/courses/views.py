@@ -33,8 +33,8 @@ from django.shortcuts import redirect
 
 from apps.accounts.decorators import instructor_required
 
-from .forms import CourseForm
-from .models import Course
+from .forms import CourseForm, SectionForm
+from .models import Course, Section
 
 
 def _get_own_course(request, pk):
@@ -173,3 +173,61 @@ def course_detail(request, pk):
             status=Course.Status.PUBLISHED,
         )
     return render(request, "courses/detail.html", {"course": course})
+
+
+@instructor_required
+def section_create(request, course_pk):
+    """Add a section to one of the instructor's own courses."""
+    course = _get_own_course(request, course_pk)
+    if request.method == "POST":
+        form = SectionForm(request.POST)
+        if form.is_valid():
+            section = form.save(commit=False)
+            section.course = course
+            section.save()
+            messages.success(request, "Section added.")
+            return redirect("courses:detail", pk=course.pk)
+    else:
+        form = SectionForm()
+    return render(
+        request,
+        "courses/section_form.html",
+        {"form": form, "course": course, "section": None},
+    )
+
+
+@instructor_required
+def section_edit(request, pk):
+    """Rename or reorder one of the instructor's own sections."""
+    section = get_object_or_404(
+        Section, pk=pk, course__instructor=request.user
+    )
+    if request.method == "POST":
+        form = SectionForm(request.POST, instance=section)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Section updated.")
+            return redirect("courses:detail", pk=section.course.pk)
+    else:
+        form = SectionForm(instance=section)
+    return render(
+        request,
+        "courses/section_form.html",
+        {"form": form, "course": section.course, "section": section},
+    )
+
+
+@instructor_required
+def section_delete(request, pk):
+    """Delete one of the instructor's own sections (and its lessons)."""
+    section = get_object_or_404(
+        Section, pk=pk, course__instructor=request.user
+    )
+    if request.method == "POST":
+        course_pk = section.course.pk
+        section.delete()
+        messages.success(request, "Section deleted.")
+        return redirect("courses:detail", pk=course_pk)
+    return render(
+        request, "courses/section_confirm_delete.html", {"section": section}
+    )

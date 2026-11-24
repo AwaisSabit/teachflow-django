@@ -118,3 +118,37 @@ class Course(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class Section(models.Model):
+    """A chapter of a course, holding lessons in order.
+
+    Sections are ordered within their course; a section with no
+    order given goes at the end, after its siblings.
+    """
+
+    course = models.ForeignKey(
+        Course, on_delete=models.CASCADE, related_name="sections"
+    )
+    title = models.CharField(max_length=200)
+    order = models.PositiveIntegerField(
+        default=0,
+        help_text="Leave as 0 to put this section at the end.",
+    )
+
+    class Meta:
+        ordering = ["order", "id"]
+
+    def save(self, *args, **kwargs):
+        if not self.order:
+            last = (
+                Section.objects.filter(course=self.course)
+                .order_by("-order")
+                .values_list("order", flat=True)
+                .first()
+            )
+            self.order = (last or 0) + 1
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.course.title} — {self.title}"

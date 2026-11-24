@@ -1,7 +1,7 @@
 """Forms for the courses app."""
 from django import forms
 
-from .models import Course
+from .models import Course, Section
 
 
 class CourseForm(forms.ModelForm):
@@ -39,3 +39,16 @@ class CourseForm(forms.ModelForm):
         if price < 0:
             raise forms.ValidationError("A course price cannot be negative.")
         return price
+
+
+class SectionForm(forms.ModelForm):
+    """Add or rename a section of a course."""
+
+    class Meta:
+        model = Section
+        fields = ("title", "order")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.widget.attrs.setdefault("class", "form-control")
