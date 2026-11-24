@@ -152,3 +152,80 @@ class Section(models.Model):
 
     def __str__(self):
         return f"{self.course.title} — {self.title}"
+
+
+class Lesson(models.Model):
+    """One lesson inside a section.
+
+    A lesson teaches with a video (embedded from a URL the instructor
+    provides — TeachFlow hosts no video itself), written content, and
+    an optional list of attachment links. Lessons are ordered inside
+    their section; one with no order given goes at the end.
+    """
+
+    section = models.ForeignKey(
+        Section, on_delete=models.CASCADE, related_name="lessons"
+    )
+    title = models.CharField(max_length=200)
+    order = models.PositiveIntegerField(
+        default=0,
+        help_text="Leave as 0 to put this lesson at the end.",
+    )
+    video_url = models.URLField(
+        blank=True,
+        help_text="A link to the lesson video (for example a YouTube link).",
+    )
+    content = models.TextField(
+        blank=True, help_text="Written lesson content, shown under the video."
+    )
+    attachments = models.TextField(
+        blank=True,
+        help_text="One attachment link per line.",
+    )
+    is_preview = models.BooleanField(
+        default=False,
+        help_text="Preview lessons can be watched without enrolling.",
+    )
+
+    class Meta:
+        ordering = ["order", "id"]
+
+    def save(self, *args, **kwargs):
+        if not self.order:
+            last = (
+                Lesson.objects.filter(section=self.section)
+                .order_by("-order")
+                .values_list("order", flat=True)
+                .first()
+            )
+            self.order = (last or 0) + 1
+        super().save(*args, **kwargs)
+
+    @property
+    def video_embed_url(self):
+        """The URL to embed in a player.
+
+        YouTube watch links become embed links; anything else is
+        used as it is.
+        """
+        from urllib.parse import parse_qs, urlparse
+
+        if not self.video_url:
+            return ""
+        parsed = urlparse(self.video_url)
+        if "youtube.com" in parsed.netloc and parsed.path == "/watch":
+            video_id = parse_qs(parsed.query).get("v", [None])[0]
+            if video_id:
+                return f"https://www.youtube.com/embed/{video_id}"
+        if parsed.netloc in {"youtu.be"}:
+            video_id = parsed.path.lstrip("/")
+            if video_id:
+                return f"https://www.youtube.com/embed/{video_id}"
+        return self.video_url
+
+    def attachment_urls(self):
+        """The attachment links, one per line."""
+        return [line.strip() for line in self.attachments.splitlines() if line.strip()]
+
+    def __str__(self):
+        return f"{self.section.course.title} — {self.title}"

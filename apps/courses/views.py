@@ -33,8 +33,8 @@ from django.shortcuts import redirect
 
 from apps.accounts.decorators import instructor_required
 
-from .forms import CourseForm, SectionForm
-from .models import Course, Section
+from .forms import CourseForm, LessonForm, SectionForm
+from .models import Course, Lesson, Section
 
 
 def _get_own_course(request, pk):
@@ -230,4 +230,87 @@ def section_delete(request, pk):
         return redirect("courses:detail", pk=course_pk)
     return render(
         request, "courses/section_confirm_delete.html", {"section": section}
+    )
+
+
+@instructor_required
+def lesson_create(request, section_pk):
+    """Add a lesson to one of the instructor's own sections."""
+    section = get_object_or_404(
+        Section, pk=section_pk, course__instructor=request.user
+    )
+    if request.method == "POST":
+        form = LessonForm(request.POST)
+        if form.is_valid():
+            lesson = form.save(commit=False)
+            lesson.section = section
+            lesson.save()
+            messages.success(request, "Lesson added.")
+            return redirect("courses:detail", pk=section.course.pk)
+    else:
+        form = LessonForm()
+    return render(
+        request,
+        "courses/lesson_form.html",
+        {"form": form, "section": section, "lesson": None},
+    )
+
+
+@instructor_required
+def lesson_edit(request, pk):
+    """Edit one of the instructor's own lessons."""
+    lesson = get_object_or_404(
+        Lesson, pk=pk, section__course__instructor=request.user
+    )
+    if request.method == "POST":
+        form = LessonForm(request.POST, instance=lesson)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Lesson updated.")
+            return redirect("courses:detail", pk=lesson.section.course.pk)
+    else:
+        form = LessonForm(instance=lesson)
+    return render(
+        request,
+        "courses/lesson_form.html",
+        {"form": form, "section": lesson.section, "lesson": lesson},
+    )
+
+
+@instructor_required
+def lesson_delete(request, pk):
+    """Delete one of the instructor's own lessons."""
+    lesson = get_object_or_404(
+        Lesson, pk=pk, section__course__instructor=request.user
+    )
+    if request.method == "POST":
+        course_pk = lesson.section.course.pk
+        lesson.delete()
+        messages.success(request, "Lesson deleted.")
+        return redirect("courses:detail", pk=course_pk)
+    return render(
+        request, "courses/lesson_confirm_delete.html", {"lesson": lesson}
+    )
+
+
+def lesson_detail(request, pk):
+    """Watch a lesson: the video, the written content, attachments.
+
+    Anyone may watch a lesson of a published course for now — the
+    enrolment gate lands with enrolment, and preview lessons stay
+    open even then.
+    """
+    lesson = get_object_or_404(
+        Lesson.objects.select_related("section__course__instructor"),
+        pk=pk,
+    )
+    course = lesson.section.course
+    if not course.is_published and (
+        not request.user.is_authenticated or course.instructor != request.user
+    ):
+        from django.http import Http404
+
+        raise Http404("No lesson matches the given query.")
+    return render(
+        request, "courses/lesson_detail.html", {"lesson": lesson, "course": course}
     )

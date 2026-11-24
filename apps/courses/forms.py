@@ -1,7 +1,7 @@
 """Forms for the courses app."""
 from django import forms
 
-from .models import Course, Section
+from .models import Course, Lesson, Section
 
 
 class CourseForm(forms.ModelForm):
@@ -47,6 +47,30 @@ class SectionForm(forms.ModelForm):
     class Meta:
         model = Section
         fields = ("title", "order")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.widget.attrs.setdefault("class", "form-control")
+
+
+class LessonForm(forms.ModelForm):
+    """Add or edit a lesson."""
+
+    class Meta:
+        model = Lesson
+        fields = (
+            "title",
+            "order",
+            "video_url",
+            "content",
+            "attachments",
+            "is_preview",
+        )
+        widgets = {
+            "content": forms.Textarea(attrs={"rows": 6}),
+            "attachments": forms.Textarea(attrs={"rows": 3}),
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

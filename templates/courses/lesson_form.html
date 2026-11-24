@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}{% if lesson %}Edit lesson{% else %}Add a lesson{% endif %} — {{ section.title }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <h1 class="h3 mb-3">{% if lesson %}Edit lesson{% else %}Add a lesson to “{{ section.title }}”{% endif %}</h1>
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% for field in form %}
+        <div class="mb-3">
+          {% if field.name == "is_preview" %}
+            <div class="form-check">
+              {{ field }}
+              <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            </div>
+          {% else %}
+            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+          {% endif %}
+          {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+          {% if field.errors %}<div class="text-danger small" role="alert">{{ field.errors }}</div>{% endif %}
+        </div>
+      {% endfor %}
+      <button type="submit" class="btn btn-primary">{% if lesson %}Save changes{% else %}Add lesson{% endif %}</button>
+      <a class="btn btn-outline-secondary" href="{% url 'courses:detail' section.course.pk %}">Back to the course</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

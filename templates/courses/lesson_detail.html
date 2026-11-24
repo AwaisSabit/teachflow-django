@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}{{ lesson.title }} — {{ course.title }}{% endblock %}
+{% block content %}
+<p class="text-muted"><a href="{% url 'courses:detail' course.pk %}">{{ course.title }}</a> · {{ lesson.section.title }}</p>
+<h1 class="h3">{{ lesson.title }}</h1>
+{% if lesson.video_embed_url %}
+  <div class="ratio ratio-16x9 mb-3">
+    <iframe src="{{ lesson.video_embed_url }}" title="{{ lesson.title }}" allowfullscreen></iframe>
+  </div>
+{% endif %}
+{% if lesson.content %}
+  <div class="mb-3">{{ lesson.content|linebreaks }}</div>
+{% endif %}
+{% if lesson.attachment_urls %}
+  <h2 class="h5">Attachments</h2>
+  <ul>
+    {% for url in lesson.attachment_urls %}
+      <li><a href="{{ url }}">{{ url }}</a></li>
+    {% endfor %}
+  </ul>
+{% endif %}
+<p><a class="btn btn-outline-secondary" href="{% url 'courses:detail' course.pk %}">Back to the course</a></p>
+{% endblock %}

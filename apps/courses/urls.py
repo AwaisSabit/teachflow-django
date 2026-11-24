@@ -18,4 +18,8 @@ urlpatterns = [
     path("<int:course_pk>/sections/create/", views.section_create, name="section_create"),
     path("sections/<int:pk>/edit/", views.section_edit, name="section_edit"),
     path("sections/<int:pk>/delete/", views.section_delete, name="section_delete"),
+    path("sections/<int:section_pk>/lessons/create/", views.lesson_create, name="lesson_create"),
+    path("lessons/<int:pk>/edit/", views.lesson_edit, name="lesson_edit"),
+    path("lessons/<int:pk>/delete/", views.lesson_delete, name="lesson_delete"),
+    path("lessons/<int:pk>/", views.lesson_detail, name="lesson_detail"),
 ]

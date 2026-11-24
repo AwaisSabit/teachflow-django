@@ -32,10 +32,24 @@
     {% endif %}
     {% if course.sections.all %}
       {% for section in course.sections.all %}
-        <h3 class="h5 mt-3">{{ section.order }}. {{ section.title }}</h3>
+        <h3 class="h5 mt-3">{{ section.order }}. {{ section.title }}
+          {% if user.is_authenticated and user == course.instructor %}
+            <a class="btn btn-sm btn-outline-secondary ms-2" href="{% url 'courses:section_edit' section.pk %}">Edit</a>
+            <a class="btn btn-sm btn-outline-primary ms-1" href="{% url 'courses:lesson_create' section.pk %}">Add a lesson</a>
+          {% endif %}
+        </h3>
         <ul class="list-group mb-2">
           {% for lesson in section.lessons.all %}
-            <li class="list-group-item">{{ lesson.order }}. {{ lesson.title }}</li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <span><a href="{% url 'courses:lesson_detail' lesson.pk %}">{{ lesson.order }}. {{ lesson.title }}</a>{% if lesson.is_preview %} <span class="badge bg-info ms-1">Preview</span>{% endif %}</span>
+              {% if user.is_authenticated and user == course.instructor %}
+                <span>
+                  <a class="btn btn-sm btn-outline-primary" href="{% url 'courses:lesson_edit' lesson.pk %}">Edit</a>
+                </span>
+              {% endif %}
+            </li>
+          {% empty %}
+            <li class="list-group-item text-muted">No lessons in this section yet.</li>
           {% endfor %}
         </ul>
       {% endfor %}
