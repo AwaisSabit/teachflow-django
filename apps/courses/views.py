@@ -16,8 +16,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from apps.accounts.decorators import instructor_required
 from apps.learning.models import is_enrolled
 
-from .forms import CourseForm, LessonForm, ReviewForm, SectionForm
-from .models import Category, Course, Lesson, Review, Section
+from .forms import AnnouncementForm, CourseForm, LessonForm, ReviewForm, SectionForm
+from .models import Announcement, Category, Course, Lesson, Review, Section
 
 
 def browse(request):
@@ -488,4 +488,37 @@ def add_review(request, pk):
         request,
         "courses/review_form.html",
         {"form": form, "course": course, "review": review},
+    )
+
+
+@instructor_required
+def announcement_create(request, course_pk):
+    """Post an announcement on one of the instructor's own courses."""
+    course = get_object_or_404(Course, pk=course_pk, instructor=request.user)
+    if request.method == "POST":
+        form = AnnouncementForm(request.POST)
+        if form.is_valid():
+            announcement = form.save(commit=False)
+            announcement.course = course
+            announcement.instructor = request.user
+            announcement.save()
+            messages.success(request, "Announcement posted.")
+    return redirect("courses:detail", pk=course.pk)
+
+
+@instructor_required
+def announcement_delete(request, announcement_pk):
+    """Delete one of the instructor's own announcements."""
+    announcement = get_object_or_404(
+        Announcement, pk=announcement_pk, instructor=request.user
+    )
+    if request.method == "POST":
+        course_pk = announcement.course.pk
+        announcement.delete()
+        messages.success(request, "Announcement deleted.")
+        return redirect("courses:detail", pk=course_pk)
+    return render(
+        request,
+        "courses/announcement_confirm_delete.html",
+        {"announcement": announcement},
     )

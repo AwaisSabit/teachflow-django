@@ -23,4 +23,6 @@ urlpatterns = [
     path("lessons/<int:pk>/edit/", views.lesson_edit, name="lesson_edit"),
     path("lessons/<int:pk>/delete/", views.lesson_delete, name="lesson_delete"),
     path("lessons/<int:pk>/", views.lesson_detail, name="lesson_detail"),
+    path("<int:course_pk>/announcements/add/", views.announcement_create, name="announcement_create"),
+    path("announcements/<int:announcement_pk>/delete/", views.announcement_delete, name="announcement_delete"),
 ]

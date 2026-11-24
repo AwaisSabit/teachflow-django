@@ -284,3 +284,26 @@ class Review(models.Model):
 
     def __str__(self):
         return f"{self.student.username} rated {self.course.title} {self.rating}/5"
+
+
+class Announcement(models.Model):
+    """A note the instructor posts on a course — a schedule change,
+    a new lesson, or anything enrolled students should know."""
+
+    course = models.ForeignKey(
+        Course, on_delete=models.CASCADE, related_name="announcements"
+    )
+    instructor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="announcements",
+    )
+    title = models.CharField(max_length=200)
+    body = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.course.title}: {self.title}"

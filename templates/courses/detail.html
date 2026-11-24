@@ -1,5 +1,37 @@
 {% extends "base.html" %}
-{% block title %}{{ course.title }} — TeachFlow{% if recommendations %}
+{% block title %}{{ course.title }} — TeachFlow{% if is_enrolled or user == course.instructor %}
+  <h2 class="h4 mt-5">Announcements</h2>
+  {% for announcement in course.announcements.all %}
+    <div class="border rounded p-2 mb-2">
+      <strong>{{ announcement.title }}</strong>
+      <span class="text-muted small">— {{ announcement.created_at|date:"j F Y" }}</span>
+      <p class="mb-0">{{ announcement.body }}</p>
+      {% if user == course.instructor %}
+        <form method="post" action="{% url 'courses:announcement_delete' announcement.pk %}" class="mt-1">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+        </form>
+      {% endif %}
+    </div>
+  {% empty %}
+    <p class="text-muted">No announcements yet.</p>
+  {% endfor %}
+  {% if user == course.instructor %}
+    <form method="post" action="{% url 'courses:announcement_create' course.pk %}" class="mt-3">
+      {% csrf_token %}
+      <div class="mb-2">
+        <label class="form-label" for="id_announcement_title">Title</label>
+        <input class="form-control" type="text" name="title" id="id_announcement_title" required maxlength="200">
+      </div>
+      <div class="mb-2">
+        <label class="form-label" for="id_announcement_body">Message</label>
+        <textarea class="form-control" name="body" id="id_announcement_body" rows="3" required></textarea>
+      </div>
+      <button type="submit" class="btn btn-outline-primary">Post announcement</button>
+    </form>
+  {% endif %}
+{% endif %}
+{% if recommendations %}
   <h2 class="h4 mt-5">Students also bought</h2>
   <div class="row">
     {% for other in recommendations %}

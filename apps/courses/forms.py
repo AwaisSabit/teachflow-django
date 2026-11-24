@@ -1,7 +1,7 @@
 """Forms for the courses app."""
 from django import forms
 
-from .models import Course, Lesson, Review, Section
+from .models import Announcement, Course, Lesson, Review, Section
 
 
 class CourseForm(forms.ModelForm):
@@ -90,6 +90,20 @@ class ReviewForm(forms.ModelForm):
             ),
             "comment": forms.Textarea(attrs={"rows": 3}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.widget.attrs.setdefault("class", "form-control")
+
+
+class AnnouncementForm(forms.ModelForm):
+    """Post an announcement on a course."""
+
+    class Meta:
+        model = Announcement
+        fields = ("title", "body")
+        widgets = {"body": forms.Textarea(attrs={"rows": 4})}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
