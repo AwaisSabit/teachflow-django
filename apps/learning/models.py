@@ -128,3 +128,43 @@ class QuizChoice(models.Model):
 
     def __str__(self):
         return self.text
+
+
+class QuizAttempt(models.Model):
+    """One student's attempt at a quiz, with its score."""
+
+    quiz = models.ForeignKey(
+        Quiz, on_delete=models.CASCADE, related_name="attempts"
+    )
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="quiz_attempts",
+    )
+    score = models.PositiveSmallIntegerField(
+        help_text="The percentage of questions answered correctly."
+    )
+    passed = models.BooleanField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.student.username} scored {self.score}% on {self.quiz.title}"
+
+
+class QuizAnswer(models.Model):
+    """One answer inside an attempt: what the student picked."""
+
+    attempt = models.ForeignKey(
+        QuizAttempt, on_delete=models.CASCADE, related_name="answers"
+    )
+    question = models.ForeignKey(QuizQuestion, on_delete=models.CASCADE)
+    chosen_choice = models.ForeignKey(
+        QuizChoice, on_delete=models.SET_NULL, null=True, blank=True
+    )
+
+    @property
+    def is_correct(self):
+        return self.chosen_choice is not None and self.chosen_choice.is_correct

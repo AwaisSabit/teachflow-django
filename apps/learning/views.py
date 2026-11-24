@@ -5,6 +5,7 @@ one click; a paid course goes through the cart and checkout instead.
 """
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, redirect, render
 
 from apps.accounts.decorators import instructor_required
@@ -12,7 +13,16 @@ from apps.accounts.decorators import instructor_required
 from apps.courses.models import Course
 
 from .forms import QuizForm, QuizQuestionForm
-from .models import Enrollment, LessonCompletion, Quiz, QuizChoice, QuizQuestion
+from .models import (
+    Enrollment,
+    LessonCompletion,
+    Quiz,
+    QuizAnswer,
+    QuizAttempt,
+    QuizChoice,
+    QuizQuestion,
+    is_enrolled,
+)
 
 
 @login_required
@@ -171,3 +181,90 @@ def quiz_delete_question(request, question_pk):
     return render(
         request, "learning/question_confirm_delete.html", {"question": question}
     )
+
+
+@login_required
+def quiz_take(request, quiz_pk):
+    """Take a quiz: answer every question, get marked at once.
+
+    Only enrolled students may take a quiz. Each question is a radio
+    list of its choices; an unanswered question counts as wrong. The
+    score is the share of correct answers, and the attempt passes
+    when the score reaches the quiz's pass mark.
+    """
+    from django import forms
+
+    quiz = get_object_or_404(
+        Quiz.objects.prefetch_related("questions__choices"),
+        pk=quiz_pk,
+    )
+    course = quiz.lesson.section.course
+    if not is_enrolled(request.user, course):
+        raise PermissionDenied("Enrol on this course to take its quizzes.")
+    questions = list(quiz.questions.all())
+    if not questions:
+        messages.info(request, "This quiz has no questions yet.")
+        return redirect("courses:lesson_detail", pk=quiz.lesson.pk)
+
+    class QuizTakeForm(forms.Form):
+        """One radio field per question, built from the quiz itself."""
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            for question in questions:
+                self.fields[f"question_{question.pk}"] = forms.ChoiceField(
+                    label=question.text,
+                    choices=[
+                        (choice.pk, choice.text)
+                        for choice in question.choices.all()
+                    ],
+                    widget=forms.RadioSelect,
+                    required=False,
+                )
+
+    if request.method == "POST":
+        form = QuizTakeForm(request.POST)
+        if form.is_valid():
+            correct = 0
+            answers = []
+            for question in questions:
+                chosen_id = form.cleaned_data.get(f"question_{question.pk}")
+                chosen = None
+                if chosen_id:
+                    chosen = QuizChoice.objects.filter(
+                        pk=chosen_id, question=question
+                    ).first()
+                if chosen is not None and chosen.is_correct:
+                    correct += 1
+                answers.append((question, chosen))
+            score = round(correct / len(questions) * 100)
+            attempt = QuizAttempt.objects.create(
+                quiz=quiz,
+                student=request.user,
+                score=score,
+                passed=score >= quiz.pass_mark,
+            )
+            for question, chosen in answers:
+                QuizAnswer.objects.create(
+                    attempt=attempt, question=question, chosen_choice=chosen
+                )
+            return redirect("learning:quiz_result", attempt_pk=attempt.pk)
+    else:
+        form = QuizTakeForm()
+    return render(
+        request,
+        "learning/quiz_take.html",
+        {"quiz": quiz, "form": form, "questions": questions},
+    )
+
+
+@login_required
+def quiz_result(request, attempt_pk):
+    """One attempt's result: the score, pass or fail, and every
+    answer with the right one shown."""
+    attempt = get_object_or_404(
+        QuizAttempt.objects.select_related("quiz__lesson__section__course"),
+        pk=attempt_pk,
+        student=request.user,
+    )
+    return render(request, "learning/quiz_result.html", {"attempt": attempt})
