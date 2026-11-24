@@ -28,7 +28,11 @@
   {% endif %}
 {% endif %}
 {% if user.is_authenticated and is_enrolled and lesson.quiz %}
-  <p><a class="btn btn-primary" href="{% url 'learning:quiz_take' lesson.quiz.pk %}">Take the quiz</a></p>
+  <p>
+    <a class="btn btn-primary" href="{% url 'learning:quiz_take' lesson.quiz.pk %}">Take the quiz</a>
+    <a class="btn btn-outline-secondary" href="{% url 'learning:quiz_results' lesson.quiz.pk %}">My results</a>
+    {% if quiz_passed %}<span class="badge bg-success">Quiz passed</span>{% endif %}
+  </p>
 {% endif %}
 {% if user.is_authenticated and user == course.instructor %}
   <p class="mt-3">

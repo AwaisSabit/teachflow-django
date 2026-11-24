@@ -21,6 +21,8 @@ from .models import (
     QuizAttempt,
     QuizChoice,
     QuizQuestion,
+    best_attempt,
+    has_passed,
     is_enrolled,
 )
 
@@ -268,3 +270,33 @@ def quiz_result(request, attempt_pk):
         student=request.user,
     )
     return render(request, "learning/quiz_result.html", {"attempt": attempt})
+
+
+@login_required
+def quiz_results(request, quiz_pk):
+    """The student's attempts at one quiz, newest first.
+
+    Shows every attempt with its score and pass or fail, the best
+    score so far, and whether the quiz is passed. A student may
+    retake a quiz as many times as they like — the "Take it again"
+    link goes back to the quiz.
+    """
+    quiz = get_object_or_404(
+        Quiz.objects.select_related("lesson__section__course"), pk=quiz_pk
+    )
+    course = quiz.lesson.section.course
+    if not is_enrolled(request.user, course):
+        raise PermissionDenied("Enrol on this course to see your results.")
+    attempts = QuizAttempt.objects.filter(
+        quiz=quiz, student=request.user
+    ).prefetch_related("answers__question")
+    return render(
+        request,
+        "learning/quiz_results.html",
+        {
+            "quiz": quiz,
+            "attempts": attempts,
+            "best": best_attempt(quiz, request.user),
+            "passed": has_passed(quiz, request.user),
+        },
+    )

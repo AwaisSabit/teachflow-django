@@ -415,8 +415,13 @@ def lesson_detail(request, pk):
         )
     enrolled = is_enrolled(request.user, course)
     is_complete = False
+    quiz_passed = False
     if enrolled:
-        from apps.learning.models import Enrollment, LessonCompletion
+        from apps.learning.models import (
+            Enrollment,
+            LessonCompletion,
+            has_passed,
+        )
 
         enrollment = Enrollment.objects.filter(
             student=request.user, course=course
@@ -424,6 +429,8 @@ def lesson_detail(request, pk):
         is_complete = LessonCompletion.objects.filter(
             enrollment=enrollment, lesson=lesson
         ).exists()
+        if hasattr(lesson, "quiz"):
+            quiz_passed = has_passed(lesson.quiz, request.user)
     return render(
         request,
         "courses/lesson_detail.html",
@@ -432,6 +439,7 @@ def lesson_detail(request, pk):
             "course": course,
             "is_enrolled": enrolled,
             "is_complete": is_complete,
+            "quiz_passed": quiz_passed,
         },
     )
 

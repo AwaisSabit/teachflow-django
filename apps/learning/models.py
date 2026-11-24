@@ -168,3 +168,37 @@ class QuizAnswer(models.Model):
     @property
     def is_correct(self):
         return self.chosen_choice is not None and self.chosen_choice.is_correct
+
+
+def best_attempt(quiz, student):
+    """The student's best attempt at a quiz, or None."""
+    return (
+        QuizAttempt.objects.filter(quiz=quiz, student=student)
+        .order_by("-score", "-created_at")
+        .first()
+    )
+
+
+def has_passed(quiz, student):
+    """True when the student has passed this quiz at least once."""
+    return QuizAttempt.objects.filter(
+        quiz=quiz, student=student, passed=True
+    ).exists()
+
+
+def has_passed_all_quizzes(enrollment):
+    """True when the student passed every quiz in the course.
+
+    A course with no quizzes counts as passed — there is nothing
+    to pass. This is what the certificate checks.
+    """
+    from apps.courses.models import Lesson
+
+    quizzes = Quiz.objects.filter(
+        lesson__section__course=enrollment.course
+    )
+    if not quizzes.exists():
+        return True
+    return all(
+        has_passed(quiz, enrollment.student) for quiz in quizzes
+    )
