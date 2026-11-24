@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Instructor dashboard — TeachFlow{% endblock %}
+{% block content %}
+<h1 class="h3 mb-3">Instructor dashboard</h1>
+<div class="row mb-4">
+  <div class="col-md-3"><div class="card"><div class="card-body"><h2 class="h5">Courses</h2><p class="display-6">{{ courses|length }}</p></div></div></div>
+  <div class="col-md-3"><div class="card"><div class="card-body"><h2 class="h5">Students</h2><p class="display-6">{{ total_students }}</p></div></div></div>
+  <div class="col-md-3"><div class="card"><div class="card-body"><h2 class="h5">Enrolments</h2><p class="display-6">{{ total_enrolments }}</p></div></div></div>
+  <div class="col-md-3"><div class="card"><div class="card-body"><h2 class="h5">Earnings</h2><p class="display-6">Rs {{ total_earnings }}</p></div></div></div>
+</div>
+{% if courses %}
+  <table class="table">
+    <thead><tr><th>Course</th><th>Status</th><th>Students</th><th>Average rating</th><th>Earnings</th></tr></thead>
+    <tbody>
+      {% for course in courses %}
+        <tr>
+          <td><a href="{% url 'courses:detail' course.pk %}">{{ course.title }}</a></td>
+          <td>{{ course.get_status_display }}</td>
+          <td>{{ course.enrolment_count }}</td>
+          <td>{% if course.avg_rating %}{{ course.avg_rating|floatformat:1 }} / 5{% else %}—{% endif %}</td>
+          <td>Rs {{ course.revenue|default:"0" }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p class="text-muted">You have no courses yet. <a href="{% url 'courses:create' %}">Create your first course</a>.</p>
+{% endif %}
+{% endblock %}

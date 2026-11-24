@@ -70,12 +70,51 @@ def student_dashboard(request):
     )
 
 
+@instructor_required
 def instructor_dashboard(request):
-    """Placeholder instructor dashboard."""
+    """The instructor's own numbers: courses, students, enrolments,
+    average ratings and earnings.
+
+    Earnings are the money actually paid for a course — the price
+    recorded on each order item, after any coupon discount.
+    """
+    from django.db.models import Avg, Count, Sum
+
+    from apps.payments.models import OrderItem
+
+    courses = (
+        Course.objects.filter(instructor=request.user)
+        .annotate(
+            enrolment_count=Count("enrollments", distinct=True),
+            avg_rating=Avg("reviews__rating"),
+        )
+        .order_by("-created_at")
+    )
+    course_ids = [course.pk for course in courses]
+    revenue_by_course = dict(
+        OrderItem.objects.filter(course_id__in=course_ids)
+        .values("course_id")
+        .annotate(total=Sum("price"))
+        .values_list("course_id", "total")
+    )
+    for course in courses:
+        course.revenue = revenue_by_course.get(course.pk, 0)
+    total_students = Enrollment.objects.filter(
+        course__instructor=request.user
+    ).values("student").distinct().count()
+    total_enrolments = Enrollment.objects.filter(
+        course__instructor=request.user
+    ).count()
+    total_earnings = sum(revenue_by_course.values(), start=0)
     return render(
         request,
-        "coming_soon.html",
-        {"title": "Teach", "message": "Your instructor dashboard is coming soon."},
+        "learning/instructor_dashboard.html",
+        {
+            "courses": courses,
+            "total_students": total_students,
+            "total_enrolments": total_enrolments,
+            "total_earnings": total_earnings,
+        },
     )
 
 
