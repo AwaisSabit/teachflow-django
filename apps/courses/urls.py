@@ -1,5 +1,9 @@
 from django.urls import path
 
+from . import views
+
 app_name = "courses"
 
-urlpatterns = []
+urlpatterns = [
+    path("", views.browse, name="browse"),
+]
