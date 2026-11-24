@@ -27,6 +27,7 @@
               {% endif %}
               <li class="nav-item"><a class="nav-link" href="{% url 'payments:wishlist' %}">Wishlist</a></li>
               <li class="nav-item"><a class="nav-link" href="{% url 'payments:cart' %}">Cart</a></li>
+              <li class="nav-item"><a class="nav-link" href="{% url 'payments:history' %}">My purchases</a></li>
               <li class="nav-item"><span class="nav-link">Hi, {{ user.display_name|default:user.username }}</span></li>
               <li class="nav-item"><a class="nav-link" href="{% url 'accounts:profile' %}">Profile</a></li>
               <li class="nav-item"><a class="nav-link" href="{% url 'accounts:logout' %}">Log out</a></li>

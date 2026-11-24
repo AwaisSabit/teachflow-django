@@ -15,4 +15,5 @@ urlpatterns = [
     path("checkout/", views.checkout_cart, name="checkout_cart"),
     path("coupon/apply/", views.apply_coupon, name="apply_coupon"),
     path("coupon/remove/", views.remove_coupon, name="remove_coupon"),
+    path("history/", views.purchase_history, name="history"),
 ]

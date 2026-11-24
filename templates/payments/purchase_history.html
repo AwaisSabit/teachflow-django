@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}My purchases — TeachFlow{% endblock %}
+{% block content %}
+<h1 class="h3 mb-3">My purchases</h1>
+{% if orders %}
+  {% for order in orders %}
+    <div class="card mb-3">
+      <div class="card-body">
+        <h2 class="h5">{{ order.order_number }} <span class="text-muted small">{{ order.created_at|date:"j F Y" }}</span></h2>
+        <ul class="mb-2">
+          {% for item in order.items.all %}
+            <li><a href="{% url 'courses:detail' item.course.pk %}">{{ item.course.title }}</a> — Rs {{ item.price }}</li>
+          {% endfor %}
+        </ul>
+        {% if order.coupon %}
+          <p class="mb-1 text-success">Discount code {{ order.coupon.code }}: − Rs {{ order.discount_amount }}</p>
+        {% endif %}
+        <p class="mb-0"><strong>Total paid: Rs {{ order.total }}</strong></p>
+      </div>
+    </div>
+  {% endfor %}
+{% else %}
+  <p class="text-muted">You have not bought any courses yet.</p>
+{% endif %}
+{% endblock %}

@@ -330,3 +330,13 @@ def checkout_course(request, course_pk):
             "total": total,
         },
     )
+
+
+@login_required
+def purchase_history(request):
+    """The signed-in user's orders, newest first, with what each one
+    bought and what it cost after any discount."""
+    orders = Order.objects.filter(student=request.user).prefetch_related(
+        "items__course", "coupon"
+    )
+    return render(request, "payments/purchase_history.html", {"orders": orders})
