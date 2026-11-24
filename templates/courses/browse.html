@@ -34,6 +34,15 @@
       <option value="paid" {% if price == "paid" %}selected{% endif %}>Paid</option>
     </select>
   </div>
+  <div class="col-md-2">
+    <label class="form-label visually-hidden" for="sort">Sort</label>
+    <select class="form-select" id="sort" name="sort">
+      <option value="newest" {% if sort == "newest" %}selected{% endif %}>Newest first</option>
+      <option value="price_low" {% if sort == "price_low" %}selected{% endif %}>Price: low to high</option>
+      <option value="price_high" {% if sort == "price_high" %}selected{% endif %}>Price: high to low</option>
+      <option value="title" {% if sort == "title" %}selected{% endif %}>Title A–Z</option>
+    </select>
+  </div>
   <div class="col-md-1">
     <button type="submit" class="btn btn-primary w-100">Filter</button>
   </div>
@@ -57,4 +66,6 @@
 {% else %}
   <p class="text-muted">No courses match those filters.</p>
 {% endif %}
+
+{% include "includes/pagination.html" with aria_label="Course pages" %}
 {% endblock %}

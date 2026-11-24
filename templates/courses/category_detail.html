@@ -1,5 +1,6 @@
 {% extends "base.html" %}
-{% block title %}{{ category.name }} — TeachFlow{% endblock %}
+{% block title %}{{ category.name }} — TeachFlow{% include "includes/pagination.html" with aria_label="Course pages" %}
+{% endblock %}
 {% block content %}
 <h1 class="h3">{{ category.name }}</h1>
 <p class="text-muted">{{ category.description }}</p>
@@ -19,4 +20,5 @@
 {% else %}
   <p class="text-muted">No courses in this category yet.</p>
 {% endif %}
+{% include "includes/pagination.html" with aria_label="Course pages" %}
 {% endblock %}

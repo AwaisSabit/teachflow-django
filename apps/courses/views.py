@@ -7,6 +7,7 @@ course simply does not exist for this user.
 """
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
+from django.core.paginator import Paginator
 from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
@@ -49,17 +50,40 @@ def browse(request):
     elif price == "paid":
         courses = courses.filter(price__gt=0)
 
+    # Sorting: newest first is the default; a learner may also sort
+    # by price or by title. An unknown value falls back to newest.
+    sort = request.GET.get("sort", "newest").strip()
+    if sort == "price_low":
+        courses = courses.order_by("price", "-created_at")
+    elif sort == "price_high":
+        courses = courses.order_by("-price", "-created_at")
+    elif sort == "title":
+        courses = courses.order_by("title")
+    else:
+        sort = "newest"
+        courses = courses.order_by("-created_at")
+
+    # Ten courses per page; the page links keep every filter.
+    paginator = Paginator(courses, 10)
+    page_obj = paginator.get_page(request.GET.get("page"))
+    kept = request.GET.copy()
+    kept.pop("page", None)
+    query_string = kept.urlencode()
+
     return render(
         request,
         "courses/browse.html",
         {
-            "courses": courses,
+            "courses": page_obj,
+            "page_obj": page_obj,
+            "query_string": query_string,
             "categories": Category.objects.all(),
             "levels": Course.Level.choices,
             "q": search_query,
             "category": category_slug,
             "level": level,
             "price": price,
+            "sort": sort,
         },
     )
 
@@ -70,10 +94,17 @@ def category_detail(request, slug):
     # Learners only ever see published courses here; drafts and
     # submitted courses stay invisible outside the instructor's pages.
     courses = category.courses.filter(status=Course.Status.PUBLISHED)
+    paginator = Paginator(courses, 10)
+    page_obj = paginator.get_page(request.GET.get("page"))
     return render(
         request,
         "courses/category_detail.html",
-        {"category": category, "courses": courses},
+        {
+            "category": category,
+            "courses": page_obj,
+            "page_obj": page_obj,
+            "query_string": "",
+        },
     )
 
 
