@@ -261,3 +261,46 @@ def next_lesson(enrollment):
         if lesson.pk not in done:
             return lesson
     return None
+
+
+class LessonQuestion(models.Model):
+    """A question a student asked about one lesson."""
+
+    lesson = models.ForeignKey(
+        "courses.Lesson", on_delete=models.CASCADE, related_name="questions"
+    )
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="lesson_questions",
+    )
+    text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"{self.student.username} asked: {self.text[:60]}"
+
+
+class LessonAnswer(models.Model):
+    """The instructor's answer to one lesson question.
+
+    A question gets one answer — the instructor answers it once,
+    and the answer is shown under the question.
+    """
+
+    question = models.OneToOneField(
+        LessonQuestion, on_delete=models.CASCADE, related_name="answer"
+    )
+    instructor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="lesson_answers",
+    )
+    text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Answer to: {self.question.text[:60]}"

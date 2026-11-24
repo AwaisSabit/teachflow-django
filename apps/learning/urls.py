@@ -16,4 +16,6 @@ urlpatterns = [
     path("attempts/<int:attempt_pk>/", views.quiz_result, name="quiz_result"),
     path("quizzes/<int:quiz_pk>/results/", views.quiz_results, name="quiz_results"),
     path("courses/<int:course_pk>/certificate/", views.certificate, name="certificate"),
+    path("lessons/<int:lesson_pk>/ask/", views.ask_question, name="ask_question"),
+    path("questions/<int:question_pk>/answer/", views.answer_question, name="answer_question"),
 ]

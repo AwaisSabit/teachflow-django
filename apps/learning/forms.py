@@ -45,3 +45,29 @@ class QuizQuestionForm(forms.Form):
         for field in self.fields.values():
             field.widget.attrs.setdefault("class", "form-control")
         self.fields["correct"].widget.attrs.pop("class", None)
+
+
+class LessonQuestionForm(forms.Form):
+    """Ask the instructor a question about a lesson."""
+
+    text = forms.CharField(
+        label="Your question", widget=forms.Textarea(attrs={"rows": 3})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.widget.attrs.setdefault("class", "form-control")
+
+
+class LessonAnswerForm(forms.Form):
+    """Answer a student's question about a lesson."""
+
+    text = forms.CharField(
+        label="Your answer", widget=forms.Textarea(attrs={"rows": 3})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.widget.attrs.setdefault("class", "form-control")

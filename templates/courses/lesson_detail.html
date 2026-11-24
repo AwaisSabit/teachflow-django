@@ -43,5 +43,38 @@
     {% endif %}
   </p>
 {% endif %}
+<hr>
+<h2 class="h4 mt-4">Questions and answers</h2>
+{% for question in questions %}
+  <div class="border rounded p-2 mb-2">
+    <p class="mb-1"><strong>{{ question.student.display_name|default:question.student.username }}</strong> asked: {{ question.text }}</p>
+    {% if question.answer %}
+      <p class="mb-0 text-success"><strong>{{ question.answer.instructor.display_name|default:question.answer.instructor.username }}</strong> answered: {{ question.answer.text }}</p>
+    {% elif user.is_authenticated and user == course.instructor %}
+      <form method="post" action="{% url 'learning:answer_question' question.pk %}">
+        {% csrf_token %}
+        <div class="mb-2">
+          <label class="form-label" for="id_answer_{{ question.pk }}">Your answer</label>
+          <textarea class="form-control" name="text" id="id_answer_{{ question.pk }}" rows="2" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-sm btn-primary">Post answer</button>
+      </form>
+    {% else %}
+      <p class="text-muted mb-0 small">Waiting for the instructor's answer.</p>
+    {% endif %}
+  </div>
+{% empty %}
+  <p class="text-muted">No questions yet.</p>
+{% endfor %}
+{% if is_enrolled %}
+  <form method="post" action="{% url 'learning:ask_question' lesson.pk %}" class="mt-3">
+    {% csrf_token %}
+    <div class="mb-2">
+      <label class="form-label" for="id_question">Ask a question about this lesson</label>
+      <textarea class="form-control" name="text" id="id_question" rows="3" required></textarea>
+    </div>
+    <button type="submit" class="btn btn-outline-primary">Ask the instructor</button>
+  </form>
+{% endif %}
 <p class="mt-3"><a class="btn btn-outline-secondary" href="{% url 'courses:detail' course.pk %}">Back to the course</a></p>
 {% endblock %}

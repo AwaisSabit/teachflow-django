@@ -12,7 +12,7 @@ from apps.accounts.decorators import instructor_required
 
 from apps.courses.models import Course
 
-from .forms import QuizForm, QuizQuestionForm
+from .forms import LessonAnswerForm, LessonQuestionForm, QuizForm, QuizQuestionForm
 from .models import (
     Enrollment,
     LessonCompletion,
@@ -23,6 +23,8 @@ from .models import (
     QuizQuestion,
     Certificate,
     Certificate,
+    LessonAnswer,
+    LessonQuestion,
     best_attempt,
     has_passed,
     has_passed_all_quizzes,
@@ -389,4 +391,61 @@ def certificate(request, course_pk):
             "progress": progress_percent(enrollment),
             "quizzes_passed": has_passed_all_quizzes(enrollment),
         },
+    )
+
+
+@login_required
+def ask_question(request, lesson_pk):
+    """Ask the instructor a question about a lesson.
+
+    Only enrolled students may ask, and only about lessons of
+    courses they are enrolled on.
+    """
+    from apps.courses.models import Lesson
+
+    lesson = get_object_or_404(
+        Lesson.objects.select_related("section__course"), pk=lesson_pk
+    )
+    if not is_enrolled(request.user, lesson.section.course):
+        raise PermissionDenied("Enrol on this course to ask questions.")
+    if request.method == "POST":
+        form = LessonQuestionForm(request.POST)
+        if form.is_valid():
+            LessonQuestion.objects.create(
+                lesson=lesson,
+                student=request.user,
+                text=form.cleaned_data["text"],
+            )
+            messages.success(request, "Your question has been posted.")
+    return redirect("courses:lesson_detail", pk=lesson.pk)
+
+
+@login_required
+def answer_question(request, question_pk):
+    """Answer a student's question about a lesson.
+
+    Only the instructor of the course may answer, and a question
+    gets one answer.
+    """
+    question = get_object_or_404(
+        LessonQuestion.objects.select_related(
+            "lesson__section__course"
+        ),
+        pk=question_pk,
+    )
+    if question.lesson.section.course.instructor != request.user:
+        raise PermissionDenied("Only the course instructor can answer.")
+    if request.method == "POST":
+        form = LessonAnswerForm(request.POST)
+        if form.is_valid():
+            LessonAnswer.objects.update_or_create(
+                question=question,
+                defaults={
+                    "instructor": request.user,
+                    "text": form.cleaned_data["text"],
+                },
+            )
+            messages.success(request, "Your answer has been posted.")
+    return redirect(
+        "courses:lesson_detail", pk=question.lesson.pk
     )

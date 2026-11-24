@@ -440,6 +440,11 @@ def lesson_detail(request, pk):
         ).exists()
         if hasattr(lesson, "quiz"):
             quiz_passed = has_passed(lesson.quiz, request.user)
+    from apps.learning.forms import LessonAnswerForm, LessonQuestionForm
+
+    questions = lesson.questions.select_related(
+        "student", "answer__instructor"
+    )
     return render(
         request,
         "courses/lesson_detail.html",
@@ -449,6 +454,9 @@ def lesson_detail(request, pk):
             "is_enrolled": enrolled,
             "is_complete": is_complete,
             "quiz_passed": quiz_passed,
+            "questions": questions,
+            "question_form": LessonQuestionForm(),
+            "answer_form": LessonAnswerForm(),
         },
     )
 
