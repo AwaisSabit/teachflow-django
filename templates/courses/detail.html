@@ -98,6 +98,10 @@
               </form>
             {% else %}
               <a class="btn btn-primary w-100" href="{% url 'payments:checkout_course' course.pk %}">Buy this course</a>
+              <form method="post" action="{% url 'payments:cart_add' course.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-primary w-100 mt-2">Add to cart</button>
+              </form>
             {% endif %}
           {% else %}
             <a class="btn btn-primary w-100" href="{% url 'accounts:login' %}">Log in to enrol</a>

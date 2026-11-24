@@ -72,3 +72,34 @@ class WishlistItem(models.Model):
 
     def __str__(self):
         return f"{self.student.username} saved {self.course.title}"
+
+
+class CartItem(models.Model):
+    """A paid course a student put in the cart, waiting for checkout."""
+
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="cart_items",
+    )
+    course = models.ForeignKey(
+        "courses.Course", on_delete=models.CASCADE, related_name="in_carts"
+    )
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("student", "course")
+        ordering = ["-added_at"]
+
+    def __str__(self):
+        return f"{self.student.username} has {self.course.title} in the cart"
+
+
+def cart_total(student):
+    """What the student's cart costs, in total."""
+    from django.db.models import Sum
+
+    total = CartItem.objects.filter(student=student).aggregate(
+        Sum("course__price")
+    )["course__price__sum"]
+    return total or 0

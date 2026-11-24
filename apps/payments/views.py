@@ -12,7 +12,7 @@ from apps.courses.models import Course
 from apps.learning.models import Enrollment, is_enrolled
 
 from .forms import SimulatedCheckoutForm
-from .models import Order, OrderItem, WishlistItem
+from .models import CartItem, Order, OrderItem, WishlistItem, cart_total
 
 
 @login_required
@@ -58,12 +58,100 @@ def wishlist_remove(request, course_pk):
     return redirect("payments:wishlist")
 
 
+@login_required
 def cart(request):
-    """Placeholder cart page."""
+    """The signed-in user's cart, with the total to pay."""
+    items = CartItem.objects.filter(student=request.user).select_related(
+        "course__category", "course__instructor"
+    )
     return render(
         request,
-        "coming_soon.html",
-        {"title": "My cart", "message": "Your cart is coming soon."},
+        "payments/cart.html",
+        {"items": items, "total": cart_total(request.user)},
+    )
+
+
+@login_required
+def cart_add(request, course_pk):
+    """Put a paid course in the cart.
+
+    Free courses never go in a cart — they enrol directly. A course
+    the student already owns cannot be bought again.
+    """
+    course = get_object_or_404(
+        Course, pk=course_pk, status=Course.Status.PUBLISHED
+    )
+    if request.method == "POST":
+        if course.is_free:
+            messages.info(
+                request, "This course is free — enrol on it directly."
+            )
+        elif is_enrolled(request.user, course):
+            messages.info(request, "You already own this course.")
+        else:
+            item, created = CartItem.objects.get_or_create(
+                student=request.user, course=course
+            )
+            if created:
+                messages.success(
+                    request, f"“{course.title}” has been added to your cart."
+                )
+            else:
+                messages.info(request, "That course is already in your cart.")
+    return redirect("courses:detail", pk=course.pk)
+
+
+@login_required
+def cart_remove(request, course_pk):
+    """Take a course out of the cart."""
+    course = get_object_or_404(Course, pk=course_pk)
+    if request.method == "POST":
+        CartItem.objects.filter(student=request.user, course=course).delete()
+        messages.success(
+            request, f"“{course.title}” has been removed from your cart."
+        )
+    return redirect("payments:cart")
+
+
+@login_required
+def checkout_cart(request):
+    """Buy everything in the cart through the simulated checkout.
+
+    The page shows the cart and its total, takes card details that
+    are never stored, and on confirmation creates one order for the
+    whole cart, enrols the student on every course, and empties the
+    cart. Coupons are applied here in a later step.
+    """
+    items = CartItem.objects.filter(student=request.user).select_related(
+        "course"
+    )
+    total = cart_total(request.user)
+    if not items.exists():
+        messages.info(request, "Your cart is empty.")
+        return redirect("payments:cart")
+    if request.method == "POST":
+        form = SimulatedCheckoutForm(request.POST)
+        if form.is_valid():
+            order = Order.objects.create(student=request.user, total=total)
+            for item in items:
+                OrderItem.objects.create(
+                    order=order, course=item.course, price=item.course.price
+                )
+                Enrollment.objects.get_or_create(
+                    student=request.user, course=item.course
+                )
+            items.delete()
+            messages.success(
+                request,
+                f"Payment complete — you are now enrolled on {order.items.count()} course(s).",
+            )
+            return redirect("learning:student_dashboard")
+    else:
+        form = SimulatedCheckoutForm()
+    return render(
+        request,
+        "payments/checkout_cart.html",
+        {"form": form, "items": items, "total": total},
     )
 
 
