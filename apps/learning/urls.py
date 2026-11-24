@@ -9,4 +9,7 @@ urlpatterns = [
     path("teach/", views.instructor_dashboard, name="instructor_dashboard"),
     path("enrol/<int:course_pk>/", views.enrol, name="enrol"),
     path("complete/<int:lesson_pk>/", views.toggle_complete, name="toggle_complete"),
+    path("lessons/<int:lesson_pk>/quiz/create/", views.quiz_create, name="quiz_create"),
+    path("quizzes/<int:quiz_pk>/", views.quiz_manage, name="quiz_manage"),
+    path("questions/<int:question_pk>/delete/", views.quiz_delete_question, name="quiz_delete_question"),
 ]

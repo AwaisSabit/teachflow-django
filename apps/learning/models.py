@@ -67,3 +67,64 @@ def progress_percent(enrollment):
         return 0
     done = enrollment.completions.count()
     return round(done / total * 100)
+
+
+class Quiz(models.Model):
+    """A quiz attached to one lesson.
+
+    A quiz has a pass mark (70% by default). A student passes by
+    answering at least that share of its questions correctly.
+    """
+
+    lesson = models.OneToOneField(
+        "courses.Lesson", on_delete=models.CASCADE, related_name="quiz"
+    )
+    title = models.CharField(max_length=200)
+    pass_mark = models.PositiveSmallIntegerField(
+        default=70,
+        help_text="The percentage of correct answers needed to pass.",
+    )
+
+    def __str__(self):
+        return f"Quiz: {self.title}"
+
+
+class QuizQuestion(models.Model):
+    """One multiple-choice question inside a quiz."""
+
+    quiz = models.ForeignKey(
+        Quiz, on_delete=models.CASCADE, related_name="questions"
+    )
+    text = models.TextField()
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["order", "id"]
+
+    def save(self, *args, **kwargs):
+        if not self.order:
+            last = (
+                QuizQuestion.objects.filter(quiz=self.quiz)
+                .order_by("-order")
+                .values_list("order", flat=True)
+                .first()
+            )
+            self.order = (last or 0) + 1
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.text[:60]
+
+
+class QuizChoice(models.Model):
+    """One answer option for a question. Exactly one per question is
+    the correct answer."""
+
+    question = models.ForeignKey(
+        QuizQuestion, on_delete=models.CASCADE, related_name="choices"
+    )
+    text = models.CharField(max_length=300)
+    is_correct = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.text

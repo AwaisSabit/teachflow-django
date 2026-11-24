@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Manage quiz — {{ quiz.title }}{% endblock %}
+{% block content %}
+<h1 class="h3 mb-1">{{ quiz.title }}</h1>
+<p class="text-muted">Pass mark: {{ quiz.pass_mark }}% · Lesson: {{ quiz.lesson.title }}</p>
+<h2 class="h5 mt-4">Questions ({{ quiz.questions.count }})</h2>
+{% for question in quiz.questions.all %}
+  <div class="border rounded p-2 mb-2">
+    <strong>{{ question.order }}. {{ question.text }}</strong>
+    <ul class="mb-1">
+      {% for choice in question.choices.all %}
+        <li{% if choice.is_correct %} class="text-success fw-bold"{% endif %}>{{ choice.text }}{% if choice.is_correct %} — correct{% endif %}</li>
+      {% endfor %}
+    </ul>
+    <form method="post" action="{% url 'learning:quiz_delete_question' question.pk %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-sm btn-outline-danger">Delete question</button>
+    </form>
+  </div>
+{% empty %}
+  <p class="text-muted">No questions yet — add the first one below.</p>
+{% endfor %}
+<h2 class="h5 mt-4">Add a question</h2>
+<form method="post" novalidate>
+  {% csrf_token %}
+  {% for field in form %}
+    <div class="mb-3">
+      {% if field.name == "correct" %}
+        <label class="form-label">{{ field.label }}</label>
+        {{ field }}
+      {% else %}
+        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+      {% endif %}
+      {% if field.errors %}<div class="text-danger small" role="alert">{{ field.errors }}</div>{% endif %}
+    </div>
+  {% endfor %}
+  <button type="submit" class="btn btn-primary">Add question</button>
+  <a class="btn btn-outline-secondary" href="{% url 'courses:lesson_detail' quiz.lesson.pk %}">Back to the lesson</a>
+</form>
+{% endblock %}

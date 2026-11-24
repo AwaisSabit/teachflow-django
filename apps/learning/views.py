@@ -7,9 +7,12 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 
+from apps.accounts.decorators import instructor_required
+
 from apps.courses.models import Course
 
-from .models import Enrollment, LessonCompletion
+from .forms import QuizForm, QuizQuestionForm
+from .models import Enrollment, LessonCompletion, Quiz, QuizChoice, QuizQuestion
 
 
 @login_required
@@ -91,3 +94,80 @@ def toggle_complete(request, lesson_pk):
         else:
             messages.success(request, f"“{lesson.title}” marked as complete.")
     return redirect("courses:lesson_detail", pk=lesson.pk)
+
+
+def _get_own_lesson(request, lesson_pk):
+    """Fetch one lesson of the signed-in instructor's courses, or 404."""
+    from apps.courses.models import Lesson
+
+    return get_object_or_404(
+        Lesson, pk=lesson_pk, section__course__instructor=request.user
+    )
+
+
+@instructor_required
+def quiz_create(request, lesson_pk):
+    """Add a quiz to one of the instructor's own lessons."""
+    lesson = _get_own_lesson(request, lesson_pk)
+    if hasattr(lesson, "quiz"):
+        messages.info(request, "This lesson already has a quiz.")
+        return redirect("courses:lesson_detail", pk=lesson.pk)
+    if request.method == "POST":
+        form = QuizForm(request.POST)
+        if form.is_valid():
+            quiz = form.save(commit=False)
+            quiz.lesson = lesson
+            quiz.save()
+            messages.success(request, "Quiz created — now add some questions.")
+            return redirect("learning:quiz_manage", quiz_pk=quiz.pk)
+    else:
+        form = QuizForm()
+    return render(
+        request, "learning/quiz_form.html", {"form": form, "lesson": lesson}
+    )
+
+
+@instructor_required
+def quiz_manage(request, quiz_pk):
+    """One quiz: its questions, with a form to add another."""
+    quiz = get_object_or_404(
+        Quiz, pk=quiz_pk, lesson__section__course__instructor=request.user
+    )
+    if request.method == "POST":
+        form = QuizQuestionForm(request.POST)
+        if form.is_valid():
+            question = QuizQuestion.objects.create(
+                quiz=quiz, text=form.cleaned_data["text"]
+            )
+            correct = form.cleaned_data["correct"]
+            for key in ("a", "b", "c", "d"):
+                QuizChoice.objects.create(
+                    question=question,
+                    text=form.cleaned_data[f"choice_{key}"],
+                    is_correct=(key == correct),
+                )
+            messages.success(request, "Question added.")
+            return redirect("learning:quiz_manage", quiz_pk=quiz.pk)
+    else:
+        form = QuizQuestionForm()
+    return render(
+        request, "learning/quiz_manage.html", {"quiz": quiz, "form": form}
+    )
+
+
+@instructor_required
+def quiz_delete_question(request, question_pk):
+    """Delete one question from the instructor's own quiz."""
+    question = get_object_or_404(
+        QuizQuestion,
+        pk=question_pk,
+        quiz__lesson__section__course__instructor=request.user,
+    )
+    if request.method == "POST":
+        quiz_pk = question.quiz.pk
+        question.delete()
+        messages.success(request, "Question deleted.")
+        return redirect("learning:quiz_manage", quiz_pk=quiz_pk)
+    return render(
+        request, "learning/question_confirm_delete.html", {"question": question}
+    )
