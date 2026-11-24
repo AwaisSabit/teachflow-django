@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Earnings report — TeachFlow{% endblock %}
+{% block content %}
+<h1 class="h3 mb-3">Earnings report</h1>
+<p><a class="btn btn-outline-secondary btn-sm" href="{% url 'payments:earnings_report' %}?format=csv">Download as CSV</a></p>
+{% if rows %}
+  <table class="table">
+    <thead><tr><th>Course</th><th>Units sold</th><th>Gross</th><th>Coupon discounts</th><th>Revenue</th></tr></thead>
+    <tbody>
+      {% for row in rows %}
+        <tr>
+          <td>{{ row.course }}</td>
+          <td>{{ row.units }}</td>
+          <td>Rs {{ row.gross }}</td>
+          <td>Rs {{ row.discount }}</td>
+          <td>Rs {{ row.revenue }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+        <th>Total</th><th>{{ totals.units }}</th><th>Rs {{ totals.gross }}</th><th>Rs {{ totals.discount }}</th><th>Rs {{ totals.revenue }}</th>
+      </tr>
+    </tfoot>
+  </table>
+{% else %}
+  <p class="text-muted">You have no courses yet, so there is nothing to report.</p>
+{% endif %}
+{% endblock %}

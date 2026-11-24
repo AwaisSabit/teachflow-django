@@ -2,6 +2,7 @@
 {% block title %}Instructor dashboard — TeachFlow{% endblock %}
 {% block content %}
 <h1 class="h3 mb-3">Instructor dashboard</h1>
+<p><a class="btn btn-outline-secondary btn-sm" href="{% url 'payments:earnings_report' %}">Earnings report</a></p>
 <div class="row mb-4">
   <div class="col-md-3"><div class="card"><div class="card-body"><h2 class="h5">Courses</h2><p class="display-6">{{ courses|length }}</p></div></div></div>
   <div class="col-md-3"><div class="card"><div class="card-body"><h2 class="h5">Students</h2><p class="display-6">{{ total_students }}</p></div></div></div>

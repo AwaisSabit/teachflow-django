@@ -16,4 +16,5 @@ urlpatterns = [
     path("coupon/apply/", views.apply_coupon, name="apply_coupon"),
     path("coupon/remove/", views.remove_coupon, name="remove_coupon"),
     path("history/", views.purchase_history, name="history"),
+    path("earnings/", views.earnings_report, name="earnings_report"),
 ]

@@ -7,6 +7,8 @@ straight away. There is no real payment gateway here.
 from decimal import Decimal
 
 from django.contrib import messages
+
+from apps.accounts.decorators import instructor_required
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 
@@ -340,3 +342,79 @@ def purchase_history(request):
         "items__course", "coupon"
     )
     return render(request, "payments/purchase_history.html", {"orders": orders})
+
+
+@instructor_required
+def earnings_report(request):
+    """What the instructor earned, course by course.
+
+    For each of the instructor's courses: how many times it sold,
+    what it would have earned at full price (gross), what was
+    actually paid (revenue), and what coupons took off (the
+    difference). Appending ?format=csv downloads the same table
+    as a spreadsheet.
+    """
+    import csv
+
+    from django.db.models import Count, Sum
+    from django.http import HttpResponse
+
+    from apps.courses.models import Course
+
+    rows = []
+    for course in Course.objects.filter(instructor=request.user).order_by(
+        "title"
+    ):
+        items = OrderItem.objects.filter(course=course)
+        units = items.count()
+        revenue = items.aggregate(total=Sum("price"))["total"] or 0
+        gross = course.price * units
+        rows.append(
+            {
+                "course": course.title,
+                "units": units,
+                "gross": gross,
+                "revenue": revenue,
+                "discount": gross - revenue,
+            }
+        )
+    totals = {
+        "units": sum(row["units"] for row in rows),
+        "gross": sum((row["gross"] for row in rows), start=0),
+        "revenue": sum((row["revenue"] for row in rows), start=0),
+        "discount": sum((row["discount"] for row in rows), start=0),
+    }
+    if request.GET.get("format") == "csv":
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = (
+            'attachment; filename="teachflow-earnings.csv"'
+        )
+        writer = csv.writer(response)
+        writer.writerow(
+            ["Course", "Units sold", "Gross", "Coupon discounts", "Revenue"]
+        )
+        for row in rows:
+            writer.writerow(
+                [
+                    row["course"],
+                    row["units"],
+                    row["gross"],
+                    row["discount"],
+                    row["revenue"],
+                ]
+            )
+        writer.writerow(
+            [
+                "Total",
+                totals["units"],
+                totals["gross"],
+                totals["discount"],
+                totals["revenue"],
+            ]
+        )
+        return response
+    return render(
+        request,
+        "payments/earnings_report.html",
+        {"rows": rows, "totals": totals},
+    )
