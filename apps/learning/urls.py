@@ -15,4 +15,5 @@ urlpatterns = [
     path("quizzes/<int:quiz_pk>/take/", views.quiz_take, name="quiz_take"),
     path("attempts/<int:attempt_pk>/", views.quiz_result, name="quiz_result"),
     path("quizzes/<int:quiz_pk>/results/", views.quiz_results, name="quiz_results"),
+    path("courses/<int:course_pk>/certificate/", views.certificate, name="certificate"),
 ]

@@ -202,3 +202,40 @@ def has_passed_all_quizzes(enrollment):
     return all(
         has_passed(quiz, enrollment.student) for quiz in quizzes
     )
+
+
+class Certificate(models.Model):
+    """A certificate earned by finishing a course.
+
+    One enrolment earns at most one certificate, when the student
+    has completed every lesson and passed every quiz. The number
+    is sequential, so each certificate can be checked by its number.
+    """
+
+    enrollment = models.OneToOneField(
+        Enrollment, on_delete=models.CASCADE, related_name="certificate"
+    )
+    certificate_number = models.CharField(max_length=20, unique=True, blank=True)
+    issued_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        if not self.certificate_number:
+            last = (
+                Certificate.objects.order_by("-id")
+                .values_list("id", flat=True)
+                .first()
+            )
+            self.certificate_number = f"TF-CERT-{((last or 0) + 1):06d}"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.certificate_number} — {self.enrollment.course.title}"
+
+
+def is_eligible_for_certificate(enrollment):
+    """True when the student finished every lesson and passed every
+    quiz in the course."""
+    return (
+        progress_percent(enrollment) == 100
+        and has_passed_all_quizzes(enrollment)
+    )

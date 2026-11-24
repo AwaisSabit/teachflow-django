@@ -21,9 +21,13 @@ from .models import (
     QuizAttempt,
     QuizChoice,
     QuizQuestion,
+    Certificate,
     best_attempt,
     has_passed,
+    has_passed_all_quizzes,
+    is_eligible_for_certificate,
     is_enrolled,
+    progress_percent,
 )
 
 
@@ -298,5 +302,39 @@ def quiz_results(request, quiz_pk):
             "attempts": attempts,
             "best": best_attempt(quiz, request.user),
             "passed": has_passed(quiz, request.user),
+        },
+    )
+
+
+@login_required
+def certificate(request, course_pk):
+    """The certificate page for one course.
+
+    Only the enrolled student may see it, and only once they have
+    finished every lesson and passed every quiz. Until then the
+    page says plainly what is still missing. When the student
+    qualifies, the certificate is created once and shown every
+    time after.
+    """
+    course = get_object_or_404(Course, pk=course_pk)
+    enrollment = Enrollment.objects.filter(
+        student=request.user, course=course
+    ).first()
+    if enrollment is None:
+        raise PermissionDenied("Enrol on this course to earn its certificate.")
+    eligible = is_eligible_for_certificate(enrollment)
+    cert = None
+    if eligible:
+        cert, _ = Certificate.objects.get_or_create(enrollment=enrollment)
+    return render(
+        request,
+        "learning/certificate.html",
+        {
+            "course": course,
+            "enrollment": enrollment,
+            "eligible": eligible,
+            "certificate": cert,
+            "progress": progress_percent(enrollment),
+            "quizzes_passed": has_passed_all_quizzes(enrollment),
         },
     )
