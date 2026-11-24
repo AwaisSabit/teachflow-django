@@ -16,13 +16,11 @@ def browse(request):
 
 
 def category_detail(request, slug):
-    """One category: its description and its published courses.
-
-    The Course model lands in the next commit, so for now the page
-    shows the category and an honest empty state.
-    """
+    """One category: its description and its published courses."""
     category = get_object_or_404(Category, slug=slug)
-    courses = []
+    # Learners only ever see published courses here; drafts and
+    # submitted courses stay invisible outside the instructor's pages.
+    courses = category.courses.filter(status=Course.Status.PUBLISHED)
     return render(
         request,
         "courses/category_detail.html",
@@ -100,3 +98,53 @@ def course_delete(request, pk):
         messages.success(request, "Your course has been deleted.")
         return redirect("courses:my_courses")
     return render(request, "courses/confirm_delete.html", {"course": course})
+
+
+@instructor_required
+def submit_for_review(request, pk):
+    """Send a draft to be published. Only a draft can be submitted,
+    and only by its own instructor."""
+    course = _get_own_course(request, pk)
+    if request.method == "POST":
+        if course.status == Course.Status.DRAFT:
+            course.status = Course.Status.SUBMITTED
+            course.save()
+            messages.success(
+                request, "Your course has been submitted for publishing."
+            )
+        else:
+            messages.error(request, "Only a draft can be submitted.")
+    return redirect("courses:my_courses")
+
+
+@instructor_required
+def publish(request, pk):
+    """Publish a submitted course, so learners can find and buy it.
+    A draft cannot jump straight to published — it goes through
+    submission first."""
+    course = _get_own_course(request, pk)
+    if request.method == "POST":
+        if course.status == Course.Status.SUBMITTED:
+            course.status = Course.Status.PUBLISHED
+            course.save()
+            messages.success(request, "Your course is now published.")
+        else:
+            messages.error(
+                request, "Only a submitted course can be published."
+            )
+    return redirect("courses:my_courses")
+
+
+@instructor_required
+def withdraw(request, pk):
+    """Take a published or submitted course back to draft, so it
+    stops being visible to learners while the instructor reworks it."""
+    course = _get_own_course(request, pk)
+    if request.method == "POST":
+        if course.status in {Course.Status.PUBLISHED, Course.Status.SUBMITTED}:
+            course.status = Course.Status.DRAFT
+            course.save()
+            messages.success(request, "Your course is back to draft.")
+        else:
+            messages.error(request, "Only a published course can be withdrawn.")
+    return redirect("courses:my_courses")

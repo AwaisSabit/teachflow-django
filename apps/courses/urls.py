@@ -11,4 +11,7 @@ urlpatterns = [
     path("create/", views.course_create, name="create"),
     path("<int:pk>/edit/", views.course_edit, name="edit"),
     path("<int:pk>/delete/", views.course_delete, name="delete"),
+    path("<int:pk>/submit/", views.submit_for_review, name="submit"),
+    path("<int:pk>/publish/", views.publish, name="publish"),
+    path("<int:pk>/withdraw/", views.withdraw, name="withdraw"),
 ]

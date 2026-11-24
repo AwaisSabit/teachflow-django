@@ -13,6 +13,22 @@
           <div class="text-muted small">{{ course.category.name }} · {% if course.is_free %}Free{% else %}Rs {{ course.price }}{% endif %}</div>
         </div>
         <div>
+          {% if course.status == "draft" %}
+            <form method="post" action="{% url 'courses:submit' course.pk %}" class="d-inline">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-success">Submit for publishing</button>
+            </form>
+          {% elif course.status == "submitted" %}
+            <form method="post" action="{% url 'courses:publish' course.pk %}" class="d-inline">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-success">Publish</button>
+            </form>
+          {% elif course.status == "published" %}
+            <form method="post" action="{% url 'courses:withdraw' course.pk %}" class="d-inline">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-warning">Withdraw to draft</button>
+            </form>
+          {% endif %}
           <a class="btn btn-sm btn-outline-primary" href="{% url 'courses:edit' course.pk %}">Edit</a>
           <a class="btn btn-sm btn-outline-danger" href="{% url 'courses:delete' course.pk %}">Delete</a>
         </div>
