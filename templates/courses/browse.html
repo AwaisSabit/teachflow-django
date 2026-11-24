@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Browse courses — TeachFlow{% endblock %}
+{% block content %}
+<h1 class="h3 mb-3">Browse courses</h1>
+{% if categories %}
+  <div class="row">
+    {% for category in categories %}
+      <div class="col-md-4 mb-3">
+        <div class="card h-100">
+          <div class="card-body">
+            <h2 class="h5 card-title"><a href="{% url 'courses:category' category.slug %}">{{ category.name }}</a></h2>
+            <p class="card-text text-muted">{{ category.description|default:"Courses on this topic." }}</p>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="text-muted">No categories yet — check back soon.</p>
+{% endif %}
+{% endblock %}
