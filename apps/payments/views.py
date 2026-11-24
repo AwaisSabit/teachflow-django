@@ -152,9 +152,13 @@ def checkout_cart(request):
                 OrderItem.objects.create(
                     order=order, course=item.course, price=paid_price
                 )
-                Enrollment.objects.get_or_create(
+                _, enrolled = Enrollment.objects.get_or_create(
                     student=request.user, course=item.course
                 )
+                if enrolled:
+                    from apps.learning.notifications import notify_enrolled
+
+                    notify_enrolled(request.user, item.course)
             items.delete()
             request.session.pop("coupon_id", None)
             messages.success(
@@ -309,9 +313,13 @@ def checkout_course(request, course_pk):
             OrderItem.objects.create(
                 order=order, course=course, price=total
             )
-            Enrollment.objects.get_or_create(
+            _, enrolled = Enrollment.objects.get_or_create(
                 student=request.user, course=course
             )
+            if enrolled:
+                from apps.learning.notifications import notify_enrolled
+
+                notify_enrolled(request.user, course)
             request.session.pop("coupon_id", None)
             messages.success(
                 request,

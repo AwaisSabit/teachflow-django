@@ -59,6 +59,9 @@ def enrol(request, course_pk):
         student=request.user, course=course
     )
     if created:
+        from .notifications import notify_enrolled
+
+        notify_enrolled(request.user, course)
         messages.success(request, f"You are now enrolled on “{course.title}”.")
     else:
         messages.info(request, "You are already enrolled on this course.")
@@ -379,7 +382,11 @@ def certificate(request, course_pk):
     eligible = is_eligible_for_certificate(enrollment)
     cert = None
     if eligible:
-        cert, _ = Certificate.objects.get_or_create(enrollment=enrollment)
+        cert, created = Certificate.objects.get_or_create(enrollment=enrollment)
+        if created:
+            from .notifications import notify_certificate_earned
+
+            notify_certificate_earned(request.user, course, cert)
     return render(
         request,
         "learning/certificate.html",

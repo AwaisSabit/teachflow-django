@@ -505,6 +505,9 @@ def announcement_create(request, course_pk):
             announcement.course = course
             announcement.instructor = request.user
             announcement.save()
+            from apps.learning.notifications import notify_announcement
+
+            notify_announcement(course, announcement)
             messages.success(request, "Announcement posted.")
     return redirect("courses:detail", pk=course.pk)
 
