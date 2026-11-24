@@ -9,7 +9,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 
@@ -374,6 +374,14 @@ def course_detail(request, pk):
             student=request.user, course=course
         ).first()
         progress = progress_percent(enrollment)
+    recommendations = (
+        Course.objects.filter(
+            category=course.category, status=Course.Status.PUBLISHED
+        )
+        .exclude(pk=course.pk)
+        .annotate(enrolment_count=Count("enrollments"))
+        .order_by("-enrolment_count", "-created_at")[:4]
+    )
     return render(
         request,
         "courses/detail.html",
@@ -384,6 +392,7 @@ def course_detail(request, pk):
             "reviews": course.reviews.select_related("student"),
             "average_rating": course.average_rating(),
             "my_review": my_review,
+            "recommendations": recommendations,
         },
     )
 
