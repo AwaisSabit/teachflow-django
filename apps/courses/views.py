@@ -172,7 +172,13 @@ def course_detail(request, pk):
             pk=pk,
             status=Course.Status.PUBLISHED,
         )
-    return render(request, "courses/detail.html", {"course": course})
+    from apps.learning.models import is_enrolled
+
+    return render(
+        request,
+        "courses/detail.html",
+        {"course": course, "is_enrolled": is_enrolled(request.user, course)},
+    )
 
 
 @instructor_required
@@ -296,10 +302,14 @@ def lesson_delete(request, pk):
 def lesson_detail(request, pk):
     """Watch a lesson: the video, the written content, attachments.
 
-    Anyone may watch a lesson of a published course for now — the
-    enrolment gate lands with enrolment, and preview lessons stay
-    open even then.
+    Preview lessons are open to everyone. Any other lesson needs an
+    enrolment — or the instructor themself. A lesson of an unpublished
+    course is only visible to its instructor.
     """
+    from django.core.exceptions import PermissionDenied
+
+    from apps.learning.models import is_enrolled
+
     lesson = get_object_or_404(
         Lesson.objects.select_related("section__course__instructor"),
         pk=pk,
@@ -311,6 +321,15 @@ def lesson_detail(request, pk):
         from django.http import Http404
 
         raise Http404("No lesson matches the given query.")
+    if (
+        course.is_published
+        and not lesson.is_preview
+        and request.user != course.instructor
+        and not is_enrolled(request.user, course)
+    ):
+        raise PermissionDenied(
+            "Enrol on this course to watch this lesson."
+        )
     return render(
         request, "courses/lesson_detail.html", {"lesson": lesson, "course": course}
     )

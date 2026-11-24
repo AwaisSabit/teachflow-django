@@ -70,7 +70,19 @@
           <img src="{{ course.thumbnail_url }}" alt="Cover image for {{ course.title }}" class="img-fluid mb-3">
         {% endif %}
         <p class="h4">{% if course.is_free %}Free{% else %}Rs {{ course.price }}{% endif %}</p>
-        <p class="text-muted small">Status: {{ course.get_status_display }}</p>
+        {% if course.is_published %}
+          {% if is_enrolled %}
+            <p class="text-success">You are enrolled on this course.</p>
+          {% elif user.is_authenticated %}
+            <form method="post" action="{% url 'learning:enrol' course.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-primary w-100">{% if course.is_free %}Enrol for free{% else %}Buy this course{% endif %}</button>
+            </form>
+          {% else %}
+            <a class="btn btn-primary w-100" href="{% url 'accounts:login' %}">Log in to enrol</a>
+          {% endif %}
+        {% endif %}
+        <p class="text-muted small mt-2">Status: {{ course.get_status_display }}</p>
       </div>
     </div>
     <div class="card mt-3">
