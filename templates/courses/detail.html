@@ -32,6 +32,23 @@
       </ul>
     {% endif %}
 
+    <h2 class="h4 mt-4">Ratings and reviews</h2>
+    {% if average_rating %}
+      <p><strong>{{ average_rating|floatformat:1 }} out of 5</strong> from {{ reviews|length }} review{{ reviews|length|pluralize }}</p>
+    {% else %}
+      <p class="text-muted">No reviews yet.</p>
+    {% endif %}
+    {% for review in reviews %}
+      <div class="border rounded p-2 mb-2">
+        <strong>{{ review.student.display_name|default:review.student.username }}</strong>
+        <span class="text-warning">{{ review.rating }} / 5</span>
+        {% if review.comment %}<p class="mb-0">{{ review.comment }}</p>{% endif %}
+      </div>
+    {% endfor %}
+    {% if is_enrolled %}
+      <p><a class="btn btn-sm btn-outline-primary" href="{% url 'courses:review' course.pk %}">{% if my_review %}Update my review{% else %}Write a review{% endif %}</a></p>
+    {% endif %}
+
     <h2 class="h4 mt-4">Course curriculum</h2>
     {% if user.is_authenticated and user == course.instructor %}
       <p><a class="btn btn-sm btn-outline-primary" href="{% url 'courses:section_create' course.pk %}">Add a section</a></p>

@@ -8,6 +8,7 @@ drafts and submitted courses stay invisible outside the instructor's
 own pages.
 """
 from django.conf import settings
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils.text import slugify
 
@@ -249,3 +250,37 @@ class Lesson(models.Model):
 
     def __str__(self):
         return f"{self.section.course.title} — {self.title}"
+
+
+class Review(models.Model):
+    """One student's review of a course.
+
+    A student may review a course only after enrolling on it, and
+    only once — writing a second review updates the first, so the
+    average rating is never padded by one loud voice.
+    """
+
+    course = models.ForeignKey(
+        Course, on_delete=models.CASCADE, related_name="reviews"
+    )
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="reviews",
+    )
+    rating = models.PositiveSmallIntegerField(
+        validators=[
+            MinValueValidator(1, "A rating is at least 1 star."),
+            MaxValueValidator(5, "A rating is at most 5 stars."),
+        ]
+    )
+    comment = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("course", "student")
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.student.username} rated {self.course.title} {self.rating}/5"

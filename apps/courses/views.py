@@ -6,6 +6,7 @@ is scoped to that instructor's own courses, so another instructor's
 course simply does not exist for this user.
 """
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db.models import Q
@@ -15,8 +16,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from apps.accounts.decorators import instructor_required
 from apps.learning.models import is_enrolled
 
-from .forms import CourseForm, LessonForm, SectionForm
-from .models import Category, Course, Lesson, Section
+from .forms import CourseForm, LessonForm, ReviewForm, SectionForm
+from .models import Category, Course, Lesson, Review, Section
 
 
 def browse(request):
@@ -359,10 +360,22 @@ def course_detail(request, pk):
             pk=pk,
             status=Course.Status.PUBLISHED,
         )
+    enrolled = is_enrolled(request.user, course)
+    my_review = None
+    if request.user.is_authenticated:
+        my_review = Review.objects.filter(
+            course=course, student=request.user
+        ).first()
     return render(
         request,
         "courses/detail.html",
-        {"course": course, "is_enrolled": is_enrolled(request.user, course)},
+        {
+            "course": course,
+            "is_enrolled": enrolled,
+            "reviews": course.reviews.select_related("student"),
+            "average_rating": course.average_rating(),
+            "my_review": my_review,
+        },
     )
 
 
@@ -393,4 +406,34 @@ def lesson_detail(request, pk):
         )
     return render(
         request, "courses/lesson_detail.html", {"lesson": lesson, "course": course}
+    )
+
+
+@login_required
+def add_review(request, pk):
+    """Rate a course, or update your earlier rating.
+
+    Only enrolled students may review — someone who has never taken
+    the course cannot rate it. One review per student per course:
+    writing again updates the first review instead of adding another.
+    """
+    course = get_object_or_404(Course, pk=pk, status=Course.Status.PUBLISHED)
+    if not is_enrolled(request.user, course):
+        raise PermissionDenied("Enrol on this course to review it.")
+    review = Review.objects.filter(course=course, student=request.user).first()
+    if request.method == "POST":
+        form = ReviewForm(request.POST, instance=review)
+        if form.is_valid():
+            review = form.save(commit=False)
+            review.course = course
+            review.student = request.user
+            review.save()
+            messages.success(request, "Thank you — your review has been saved.")
+            return redirect("courses:detail", pk=course.pk)
+    else:
+        form = ReviewForm(instance=review)
+    return render(
+        request,
+        "courses/review_form.html",
+        {"form": form, "course": course, "review": review},
     )

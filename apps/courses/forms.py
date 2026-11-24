@@ -1,7 +1,7 @@
 """Forms for the courses app."""
 from django import forms
 
-from .models import Course, Lesson, Section
+from .models import Course, Lesson, Review, Section
 
 
 class CourseForm(forms.ModelForm):
@@ -70,6 +70,25 @@ class LessonForm(forms.ModelForm):
         widgets = {
             "content": forms.Textarea(attrs={"rows": 6}),
             "attachments": forms.Textarea(attrs={"rows": 3}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.widget.attrs.setdefault("class", "form-control")
+
+
+class ReviewForm(forms.ModelForm):
+    """Rate a course and say what you thought of it."""
+
+    class Meta:
+        model = Review
+        fields = ("rating", "comment")
+        widgets = {
+            "rating": forms.Select(
+                choices=[(i, f"{i} star{'s' if i > 1 else ''}") for i in range(1, 6)]
+            ),
+            "comment": forms.Textarea(attrs={"rows": 3}),
         }
 
     def __init__(self, *args, **kwargs):
