@@ -1,0 +1,19 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: teachflow
+      POSTGRES_USER: teachflow
+      POSTGRES_PASSWORD: teachflow-dev-only
+    ports:
+      - "5432:5432"
+    volumes:
+      - teachflow_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U teachflow -d teachflow"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  teachflow_pgdata:
