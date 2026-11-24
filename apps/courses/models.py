@@ -110,6 +110,26 @@ class Course(models.Model):
     def requirement_lines(self):
         return [line.strip() for line in self.requirements.splitlines() if line.strip()]
 
+    def section_count(self):
+        """How many sections the course has."""
+        return self.sections.count()
+
+    def lesson_count(self):
+        """How many lessons the course has, across all sections."""
+        return Lesson.objects.filter(section__course=self).count()
+
+    def preview_lesson(self):
+        """The first lesson marked as a free preview, or None.
+
+        Preview lessons can be watched without enrolling, so learners
+        can try the course before they buy it.
+        """
+        return (
+            Lesson.objects.filter(section__course=self, is_preview=True)
+            .order_by("section__order", "order")
+            .first()
+        )
+
     def average_rating(self):
         """Mean review rating, or None when nobody has reviewed yet."""
         from django.db.models import Avg
