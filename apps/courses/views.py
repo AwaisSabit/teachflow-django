@@ -148,3 +148,28 @@ def withdraw(request, pk):
         else:
             messages.error(request, "Only a published course can be withdrawn.")
     return redirect("courses:my_courses")
+
+
+def course_detail(request, pk):
+    """One course: what it teaches, who teaches it, its curriculum.
+
+    Published courses are open to everyone. A draft or submitted
+    course is only visible to its own instructor — learners get a
+    404, so unpublished work never leaks.
+    """
+    if request.user.is_authenticated:
+        course = get_object_or_404(
+            Course.objects.select_related("category", "instructor"),
+            pk=pk,
+        )
+        if not course.is_published and course.instructor != request.user:
+            from django.http import Http404
+
+            raise Http404("No course matches the given query.")
+    else:
+        course = get_object_or_404(
+            Course.objects.select_related("category", "instructor"),
+            pk=pk,
+            status=Course.Status.PUBLISHED,
+        )
+    return render(request, "courses/detail.html", {"course": course})

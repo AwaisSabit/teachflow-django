@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}{{ course.title }} — TeachFlow{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-md-8">
+    <p class="text-muted mb-1">{{ course.category.name }} · {{ course.get_level_display }} · {{ course.language }}</p>
+    <h1 class="h2">{{ course.title }}</h1>
+    <p class="lead">{{ course.subtitle }}</p>
+    <p>{{ course.description }}</p>
+
+    {% if course.learning_outcomes %}
+      <h2 class="h4 mt-4">What you will learn</h2>
+      <ul>
+        {% for outcome in course.learning_outcomes %}
+          <li>{{ outcome }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    {% if course.requirement_lines %}
+      <h2 class="h4 mt-4">Requirements</h2>
+      <ul>
+        {% for requirement in course.requirement_lines %}
+          <li>{{ requirement }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    <h2 class="h4 mt-4">Course curriculum</h2>
+    {% if course.sections.all %}
+      {% for section in course.sections.all %}
+        <h3 class="h5 mt-3">{{ section.order }}. {{ section.title }}</h3>
+        <ul class="list-group mb-2">
+          {% for lesson in section.lessons.all %}
+            <li class="list-group-item">{{ lesson.order }}. {{ lesson.title }}</li>
+          {% endfor %}
+        </ul>
+      {% endfor %}
+    {% else %}
+      <p class="text-muted">The curriculum for this course is not ready yet.</p>
+    {% endif %}
+  </div>
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-body">
+        {% if course.thumbnail_url %}
+          <img src="{{ course.thumbnail_url }}" alt="Cover image for {{ course.title }}" class="img-fluid mb-3">
+        {% endif %}
+        <p class="h4">{% if course.is_free %}Free{% else %}Rs {{ course.price }}{% endif %}</p>
+        <p class="text-muted small">Status: {{ course.get_status_display }}</p>
+      </div>
+    </div>
+    <div class="card mt-3">
+      <div class="card-body">
+        <h2 class="h5">Your instructor</h2>
+        <p class="mb-1"><strong>{{ course.instructor.display_name|default:course.instructor.username }}</strong></p>
+        {% if course.instructor.bio %}
+          <p class="text-muted">{{ course.instructor.bio }}</p>
+        {% else %}
+          <p class="text-muted">This instructor has not written a bio yet.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

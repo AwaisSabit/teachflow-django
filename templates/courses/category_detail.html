@@ -9,7 +9,7 @@
       <div class="col-md-4 mb-3">
         <div class="card h-100">
           <div class="card-body">
-            <h2 class="h5 card-title">{{ course.title }}</h2>
+            <h2 class="h5 card-title"><a href="{% url 'courses:detail' course.pk %}">{{ course.title }}</a></h2>
             <p class="card-text text-muted">{{ course.subtitle }}</p>
           </div>
         </div>
