@@ -2,20 +2,59 @@
 {% block title %}Browse courses — TeachFlow{% endblock %}
 {% block content %}
 <h1 class="h3 mb-3">Browse courses</h1>
-{% if categories %}
+
+<form method="get" class="row g-2 mb-4">
+  <div class="col-md-4">
+    <label class="form-label visually-hidden" for="q">Search</label>
+    <input class="form-control" type="search" id="q" name="q" value="{{ q }}" placeholder="Search courses…">
+  </div>
+  <div class="col-md-3">
+    <label class="form-label visually-hidden" for="category">Category</label>
+    <select class="form-select" id="category" name="category">
+      <option value="">All categories</option>
+      {% for cat in categories %}
+        <option value="{{ cat.slug }}" {% if category == cat.slug %}selected{% endif %}>{{ cat.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-2">
+    <label class="form-label visually-hidden" for="level">Level</label>
+    <select class="form-select" id="level" name="level">
+      <option value="">All levels</option>
+      {% for value, label in levels %}
+        <option value="{{ value }}" {% if level == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-2">
+    <label class="form-label visually-hidden" for="price">Price</label>
+    <select class="form-select" id="price" name="price">
+      <option value="">Any price</option>
+      <option value="free" {% if price == "free" %}selected{% endif %}>Free</option>
+      <option value="paid" {% if price == "paid" %}selected{% endif %}>Paid</option>
+    </select>
+  </div>
+  <div class="col-md-1">
+    <button type="submit" class="btn btn-primary w-100">Filter</button>
+  </div>
+</form>
+
+{% if courses %}
   <div class="row">
-    {% for category in categories %}
+    {% for course in courses %}
       <div class="col-md-4 mb-3">
         <div class="card h-100">
           <div class="card-body">
-            <h2 class="h5 card-title"><a href="{% url 'courses:category' category.slug %}">{{ category.name }}</a></h2>
-            <p class="card-text text-muted">{{ category.description|default:"Courses on this topic." }}</p>
+            <h2 class="h5 card-title"><a href="{% url 'courses:detail' course.pk %}">{{ course.title }}</a></h2>
+            <p class="card-text text-muted">{{ course.subtitle }}</p>
+            <p class="card-text small">{{ course.category.name }} · {{ course.get_level_display }} · {{ course.instructor.display_name|default:course.instructor.username }}</p>
+            <p class="card-text"><strong>{% if course.is_free %}Free{% else %}Rs {{ course.price }}{% endif %}</strong></p>
           </div>
         </div>
       </div>
     {% endfor %}
   </div>
 {% else %}
-  <p class="text-muted">No categories yet — check back soon.</p>
+  <p class="text-muted">No courses match those filters.</p>
 {% endif %}
 {% endblock %}

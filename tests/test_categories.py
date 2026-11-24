@@ -42,7 +42,7 @@ class BrowseTests(TestCase):
     def test_browse_empty_state(self):
         response = self.client.get(reverse("courses:browse"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "No categories yet")
+        self.assertContains(response, "No courses match those filters.")
 
     def test_category_page_shows_description_and_empty_state(self):
         category = make_category(

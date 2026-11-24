@@ -1,18 +1,67 @@
-"""Course browsing views.
+"""Course browsing, management and detail views.
 
-Learners browse by category. The browse page lists every category;
-a category page shows the category and, once courses exist, the
-published courses inside it.
+Learners only ever see published courses in the catalogue. Every
+management view needs an instructor, and every query for one course
+is scoped to that instructor's own courses, so another instructor's
+course simply does not exist for this user.
 """
-from django.shortcuts import get_object_or_404, render
+from django.contrib import messages
+from django.core.exceptions import PermissionDenied
+from django.db.models import Q
+from django.http import Http404
+from django.shortcuts import get_object_or_404, redirect, render
 
-from .models import Category
+from apps.accounts.decorators import instructor_required
+from apps.learning.models import is_enrolled
+
+from .forms import CourseForm, LessonForm, SectionForm
+from .models import Category, Course, Lesson, Section
 
 
 def browse(request):
-    """List every category, so learners can pick a topic to explore."""
-    categories = Category.objects.all()
-    return render(request, "courses/browse.html", {"categories": categories})
+    """The course catalogue: published courses, searchable and filterable.
+
+    `q` searches title, subtitle and description; `category` narrows
+    to one category slug; `level` narrows to one level; `price` is
+    "free", "paid" or empty for all. Drafts and submitted courses
+    never appear here.
+    """
+    courses = Course.objects.filter(status=Course.Status.PUBLISHED).select_related(
+        "category", "instructor"
+    )
+    search_query = request.GET.get("q", "").strip()
+    category_slug = request.GET.get("category", "").strip()
+    level = request.GET.get("level", "").strip()
+    price = request.GET.get("price", "").strip()
+
+    if search_query:
+        courses = courses.filter(
+            Q(title__icontains=search_query)
+            | Q(subtitle__icontains=search_query)
+            | Q(description__icontains=search_query)
+        )
+    if category_slug:
+        courses = courses.filter(category__slug=category_slug)
+    if level in dict(Course.Level.choices):
+        courses = courses.filter(level=level)
+    if price == "free":
+        courses = courses.filter(price=0)
+    elif price == "paid":
+        courses = courses.filter(price__gt=0)
+
+    return render(
+        request,
+        "courses/browse.html",
+        {
+            "courses": courses,
+            "categories": Category.objects.all(),
+            "levels": Course.Level.choices,
+            "q": search_query,
+            "category": category_slug,
+            "level": level,
+            "price": price,
+        },
+    )
 
 
 def category_detail(request, slug):
@@ -26,15 +75,6 @@ def category_detail(request, slug):
         "courses/category_detail.html",
         {"category": category, "courses": courses},
     )
-
-
-from django.contrib import messages
-from django.shortcuts import redirect
-
-from apps.accounts.decorators import instructor_required
-
-from .forms import CourseForm, LessonForm, SectionForm
-from .models import Course, Lesson, Section
 
 
 def _get_own_course(request, pk):
@@ -148,37 +188,6 @@ def withdraw(request, pk):
         else:
             messages.error(request, "Only a published course can be withdrawn.")
     return redirect("courses:my_courses")
-
-
-def course_detail(request, pk):
-    """One course: what it teaches, who teaches it, its curriculum.
-
-    Published courses are open to everyone. A draft or submitted
-    course is only visible to its own instructor — learners get a
-    404, so unpublished work never leaks.
-    """
-    if request.user.is_authenticated:
-        course = get_object_or_404(
-            Course.objects.select_related("category", "instructor"),
-            pk=pk,
-        )
-        if not course.is_published and course.instructor != request.user:
-            from django.http import Http404
-
-            raise Http404("No course matches the given query.")
-    else:
-        course = get_object_or_404(
-            Course.objects.select_related("category", "instructor"),
-            pk=pk,
-            status=Course.Status.PUBLISHED,
-        )
-    from apps.learning.models import is_enrolled
-
-    return render(
-        request,
-        "courses/detail.html",
-        {"course": course, "is_enrolled": is_enrolled(request.user, course)},
-    )
 
 
 @instructor_required
@@ -299,6 +308,33 @@ def lesson_delete(request, pk):
     )
 
 
+def course_detail(request, pk):
+    """One course: what it teaches, who teaches it, its curriculum.
+
+    Published courses are open to everyone. A draft or submitted
+    course is only visible to its own instructor — learners get a
+    404, so unpublished work never leaks.
+    """
+    if request.user.is_authenticated:
+        course = get_object_or_404(
+            Course.objects.select_related("category", "instructor"),
+            pk=pk,
+        )
+        if not course.is_published and course.instructor != request.user:
+            raise Http404("No course matches the given query.")
+    else:
+        course = get_object_or_404(
+            Course.objects.select_related("category", "instructor"),
+            pk=pk,
+            status=Course.Status.PUBLISHED,
+        )
+    return render(
+        request,
+        "courses/detail.html",
+        {"course": course, "is_enrolled": is_enrolled(request.user, course)},
+    )
+
+
 def lesson_detail(request, pk):
     """Watch a lesson: the video, the written content, attachments.
 
@@ -306,10 +342,6 @@ def lesson_detail(request, pk):
     enrolment — or the instructor themself. A lesson of an unpublished
     course is only visible to its instructor.
     """
-    from django.core.exceptions import PermissionDenied
-
-    from apps.learning.models import is_enrolled
-
     lesson = get_object_or_404(
         Lesson.objects.select_related("section__course__instructor"),
         pk=pk,
@@ -318,8 +350,6 @@ def lesson_detail(request, pk):
     if not course.is_published and (
         not request.user.is_authenticated or course.instructor != request.user
     ):
-        from django.http import Http404
-
         raise Http404("No lesson matches the given query.")
     if (
         course.is_published
