@@ -90,6 +90,9 @@
         {% if course.is_published %}
           {% if is_enrolled %}
             <p class="text-success">You are enrolled on this course.</p>
+            <div class="progress mb-2" role="progressbar" aria-valuenow="{{ progress }}" aria-valuemin="0" aria-valuemax="100" aria-label="Course progress">
+              <div class="progress-bar" style="width: {{ progress }}%">{{ progress }}%</div>
+            </div>
           {% elif user.is_authenticated %}
             {% if course.is_free %}
               <form method="post" action="{% url 'learning:enrol' course.pk %}">

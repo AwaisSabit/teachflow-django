@@ -362,16 +362,25 @@ def course_detail(request, pk):
         )
     enrolled = is_enrolled(request.user, course)
     my_review = None
+    progress = 0
     if request.user.is_authenticated:
         my_review = Review.objects.filter(
             course=course, student=request.user
         ).first()
+    if enrolled:
+        from apps.learning.models import Enrollment, progress_percent
+
+        enrollment = Enrollment.objects.filter(
+            student=request.user, course=course
+        ).first()
+        progress = progress_percent(enrollment)
     return render(
         request,
         "courses/detail.html",
         {
             "course": course,
             "is_enrolled": enrolled,
+            "progress": progress,
             "reviews": course.reviews.select_related("student"),
             "average_rating": course.average_rating(),
             "my_review": my_review,
@@ -404,8 +413,26 @@ def lesson_detail(request, pk):
         raise PermissionDenied(
             "Enrol on this course to watch this lesson."
         )
+    enrolled = is_enrolled(request.user, course)
+    is_complete = False
+    if enrolled:
+        from apps.learning.models import Enrollment, LessonCompletion
+
+        enrollment = Enrollment.objects.filter(
+            student=request.user, course=course
+        ).first()
+        is_complete = LessonCompletion.objects.filter(
+            enrollment=enrollment, lesson=lesson
+        ).exists()
     return render(
-        request, "courses/lesson_detail.html", {"lesson": lesson, "course": course}
+        request,
+        "courses/lesson_detail.html",
+        {
+            "lesson": lesson,
+            "course": course,
+            "is_enrolled": enrolled,
+            "is_complete": is_complete,
+        },
     )
 
 

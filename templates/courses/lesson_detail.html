@@ -19,5 +19,13 @@
     {% endfor %}
   </ul>
 {% endif %}
-<p><a class="btn btn-outline-secondary" href="{% url 'courses:detail' course.pk %}">Back to the course</a></p>
+{% if user.is_authenticated %}
+  {% if is_enrolled %}
+    <form method="post" action="{% url 'learning:toggle_complete' lesson.pk %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-success">{% if is_complete %}Completed — mark as not complete{% else %}Mark as complete{% endif %}</button>
+    </form>
+  {% endif %}
+{% endif %}
+<p class="mt-3"><a class="btn btn-outline-secondary" href="{% url 'courses:detail' course.pk %}">Back to the course</a></p>
 {% endblock %}

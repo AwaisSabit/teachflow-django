@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 
 from apps.courses.models import Course
 
-from .models import Enrollment
+from .models import Enrollment, LessonCompletion
 
 
 @login_required
@@ -58,3 +58,36 @@ def instructor_dashboard(request):
         "coming_soon.html",
         {"title": "Teach", "message": "Your instructor dashboard is coming soon."},
     )
+
+
+@login_required
+def toggle_complete(request, lesson_pk):
+    """Mark a lesson complete — or unmark it again.
+
+    Only an enrolled student may complete a lesson, and only a
+    lesson of the course they are enrolled on. Completing the same
+    lesson twice does nothing; unmarking removes the record.
+    """
+    from apps.courses.models import Lesson
+
+    lesson = get_object_or_404(
+        Lesson.objects.select_related("section__course"), pk=lesson_pk
+    )
+    course = lesson.section.course
+    enrollment = Enrollment.objects.filter(
+        student=request.user, course=course
+    ).first()
+    if enrollment is None:
+        from django.core.exceptions import PermissionDenied
+
+        raise PermissionDenied("Enrol on this course to track your progress.")
+    if request.method == "POST":
+        completion, created = LessonCompletion.objects.get_or_create(
+            enrollment=enrollment, lesson=lesson
+        )
+        if not created:
+            completion.delete()
+            messages.info(request, f"“{lesson.title}” marked as not complete.")
+        else:
+            messages.success(request, f"“{lesson.title}” marked as complete.")
+    return redirect("courses:lesson_detail", pk=lesson.pk)
