@@ -9,8 +9,29 @@
         <h2 class="h5">{{ course.title }}</h2>
         <p class="text-muted">{{ course.subtitle }}</p>
         <p class="h4">Rs {{ course.price }}</p>
+        {% if discount %}
+          <p class="text-success mb-0">Discount ({{ coupon.code }}): − Rs {{ discount }}</p>
+          <p class="h4">Total: Rs {{ total }}</p>
+        {% endif %}
       </div>
     </div>
+    {% if coupon %}
+      <form method="post" action="{% url 'payments:remove_coupon' %}" class="mb-3">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{% url 'payments:checkout_course' course.pk %}">
+        <span class="badge bg-success">{{ coupon.code }} — {{ coupon.percent }}% off</span>
+        <button type="submit" class="btn btn-sm btn-link">Remove code</button>
+      </form>
+    {% else %}
+      <form method="post" action="{% url 'payments:apply_coupon' %}" class="mb-3">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{% url 'payments:checkout_course' course.pk %}">
+        <div class="input-group">
+          <input class="form-control" type="text" name="code" placeholder="Discount code" aria-label="Discount code">
+          <button type="submit" class="btn btn-outline-secondary">Apply</button>
+        </div>
+      </form>
+    {% endif %}
     <div class="alert alert-warning" role="alert">
       This is a simulated checkout for a demo project. Your card details are checked for shape only and are never stored or sent anywhere.
     </div>
@@ -27,7 +48,7 @@
           {% if field.errors %}<div class="text-danger small" role="alert">{{ field.errors }}</div>{% endif %}
         </div>
       {% endfor %}
-      <button type="submit" class="btn btn-primary">Pay Rs {{ course.price }}</button>
+      <button type="submit" class="btn btn-primary">Pay Rs {{ total }}</button>
       <a class="btn btn-outline-secondary" href="{% url 'courses:detail' course.pk %}">Cancel</a>
     </form>
   </div>

@@ -46,3 +46,16 @@ class SimulatedCheckoutForm(forms.Form):
         if not re.fullmatch(r"\d{3,4}", cvc):
             raise forms.ValidationError("Enter the 3-digit security code.")
         return cvc
+
+
+class CouponForm(forms.Form):
+    """Type a discount code at checkout."""
+
+    code = forms.CharField(
+        max_length=30, help_text="Enter your discount code, if you have one."
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.widget.attrs.setdefault("class", "form-control")

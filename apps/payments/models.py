@@ -20,10 +20,21 @@ class Order(models.Model):
     )
     order_number = models.CharField(max_length=20, unique=True, blank=True)
     total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    coupon = models.ForeignKey(
+        "Coupon",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="orders",
+        help_text="The coupon used at checkout, if any.",
+    )
+    discount_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="How much the coupon took off the total.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
-
-    # Coupons land later: a coupon field and a discount amount are
-    # added to this model when checkout learns about coupons.
 
     class Meta:
         ordering = ["-created_at"]

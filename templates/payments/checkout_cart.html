@@ -10,9 +10,30 @@
           <p class="mb-1">{{ item.course.title }} <span class="float-end">Rs {{ item.course.price }}</span></p>
         {% endfor %}
         <hr>
+        <p class="mb-1">Subtotal <span class="float-end">Rs {{ subtotal }}</span></p>
+        {% if discount %}
+          <p class="mb-1 text-success">Discount ({{ coupon.code }}) <span class="float-end">− Rs {{ discount }}</span></p>
+        {% endif %}
         <p class="h4 mb-0">Total <span class="float-end">Rs {{ total }}</span></p>
       </div>
     </div>
+    {% if coupon %}
+      <form method="post" action="{% url 'payments:remove_coupon' %}" class="mb-3">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{% url 'payments:checkout_cart' %}">
+        <span class="badge bg-success">{{ coupon.code }} — {{ coupon.percent }}% off</span>
+        <button type="submit" class="btn btn-sm btn-link">Remove code</button>
+      </form>
+    {% else %}
+      <form method="post" action="{% url 'payments:apply_coupon' %}" class="mb-3">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{% url 'payments:checkout_cart' %}">
+        <div class="input-group">
+          <input class="form-control" type="text" name="code" placeholder="Discount code" aria-label="Discount code">
+          <button type="submit" class="btn btn-outline-secondary">Apply</button>
+        </div>
+      </form>
+    {% endif %}
     <div class="alert alert-warning" role="alert">
       This is a simulated checkout for a demo project. Your card details are checked for shape only and are never stored or sent anywhere.
     </div>
