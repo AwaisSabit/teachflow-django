@@ -104,6 +104,12 @@
           {% endif %}
         {% endif %}
         <p class="text-muted small mt-2">Status: {{ course.get_status_display }}</p>
+        {% if user.is_authenticated and course.is_published %}
+          <form method="post" action="{% url 'payments:wishlist_add' course.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline-secondary w-100 mt-2">Save to wishlist</button>
+          </form>
+        {% endif %}
       </div>
     </div>
     <div class="card mt-3">

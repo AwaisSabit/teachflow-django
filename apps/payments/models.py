@@ -51,3 +51,24 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return f"{self.course.title} in {self.order.order_number}"
+
+
+class WishlistItem(models.Model):
+    """A course a student saved to buy or take later."""
+
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="wishlist_items",
+    )
+    course = models.ForeignKey(
+        "courses.Course", on_delete=models.CASCADE, related_name="wishlisted_by"
+    )
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("student", "course")
+        ordering = ["-added_at"]
+
+    def __str__(self):
+        return f"{self.student.username} saved {self.course.title}"

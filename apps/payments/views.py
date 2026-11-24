@@ -12,16 +12,50 @@ from apps.courses.models import Course
 from apps.learning.models import Enrollment, is_enrolled
 
 from .forms import SimulatedCheckoutForm
-from .models import Order, OrderItem
+from .models import Order, OrderItem, WishlistItem
 
 
+@login_required
 def wishlist(request):
-    """Placeholder wishlist page."""
-    return render(
-        request,
-        "coming_soon.html",
-        {"title": "My wishlist", "message": "Your wishlist is coming soon."},
+    """The signed-in user's saved courses."""
+    items = WishlistItem.objects.filter(student=request.user).select_related(
+        "course__category", "course__instructor"
     )
+    return render(request, "payments/wishlist.html", {"items": items})
+
+
+@login_required
+def wishlist_add(request, course_pk):
+    """Save a published course to the wishlist."""
+    course = get_object_or_404(
+        Course, pk=course_pk, status=Course.Status.PUBLISHED
+    )
+    if request.method == "POST":
+        item, created = WishlistItem.objects.get_or_create(
+            student=request.user, course=course
+        )
+        if created:
+            messages.success(
+                request, f"“{course.title}” has been added to your wishlist."
+            )
+        else:
+            messages.info(request, "That course is already on your wishlist.")
+    return redirect("courses:detail", pk=course.pk)
+
+
+@login_required
+def wishlist_remove(request, course_pk):
+    """Take a course off the wishlist."""
+    course = get_object_or_404(Course, pk=course_pk)
+    if request.method == "POST":
+        deleted, _ = WishlistItem.objects.filter(
+            student=request.user, course=course
+        ).delete()
+        if deleted:
+            messages.success(
+                request, f"“{course.title}” has been removed from your wishlist."
+            )
+    return redirect("payments:wishlist")
 
 
 def cart(request):
