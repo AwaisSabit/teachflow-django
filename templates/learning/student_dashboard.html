@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}My learning — TeachFlow{% endblock %}
+{% block content %}
+<h1 class="h3 mb-3">My learning</h1>
+{% if enrolments %}
+  {% for enrolment in enrolments %}
+    <div class="card mb-3">
+      <div class="card-body">
+        <h2 class="h5"><a href="{% url 'courses:detail' enrolment.course.pk %}">{{ enrolment.course.title }}</a></h2>
+        <p class="text-muted small">{{ enrolment.course.category.name }} · by {{ enrolment.course.instructor.display_name|default:enrolment.course.instructor.username }}</p>
+        <div class="progress mb-2" role="progressbar" aria-valuenow="{{ enrolment.progress }}" aria-valuemin="0" aria-valuemax="100" aria-label="Progress on {{ enrolment.course.title }}">
+          <div class="progress-bar" style="width: {{ enrolment.progress }}%">{{ enrolment.progress }}%</div>
+        </div>
+        {% if enrolment.next_lesson %}
+          <a class="btn btn-primary btn-sm" href="{% url 'courses:lesson_detail' enrolment.next_lesson.pk %}">Continue: {{ enrolment.next_lesson.title }}</a>
+        {% elif enrolment.eligible %}
+          <span class="badge bg-success">Course complete</span>
+          <a class="btn btn-outline-success btn-sm" href="{% url 'learning:certificate' enrolment.course.pk %}">View my certificate</a>
+        {% else %}
+          <span class="badge bg-success">All lessons complete</span>
+        {% endif %}
+      </div>
+    </div>
+  {% endfor %}
+{% else %}
+  <p class="text-muted">You are not enrolled on any courses yet. <a href="{% url 'courses:browse' %}">Browse courses</a>.</p>
+{% endif %}
+{% endblock %}

@@ -239,3 +239,25 @@ def is_eligible_for_certificate(enrollment):
         progress_percent(enrollment) == 100
         and has_passed_all_quizzes(enrollment)
     )
+
+
+def next_lesson(enrollment):
+    """The first lesson the student has not finished yet, or None.
+
+    Lessons are taken in order — section by section, lesson by
+    lesson — so "continue where you left off" is the first
+    unfinished one. When everything is done, there is nothing left.
+    """
+    from apps.courses.models import Lesson
+
+    done = set(
+        enrollment.completions.values_list("lesson_id", flat=True)
+    )
+    for lesson in (
+        Lesson.objects.filter(section__course=enrollment.course)
+        .select_related("section")
+        .order_by("section__order", "section__id", "order", "id")
+    ):
+        if lesson.pk not in done:
+            return lesson
+    return None

@@ -22,11 +22,13 @@ from .models import (
     QuizChoice,
     QuizQuestion,
     Certificate,
+    Certificate,
     best_attempt,
     has_passed,
     has_passed_all_quizzes,
     is_eligible_for_certificate,
     is_enrolled,
+    next_lesson,
     progress_percent,
 )
 
@@ -61,12 +63,23 @@ def enrol(request, course_pk):
     return redirect("courses:detail", pk=course.pk)
 
 
+@login_required
 def student_dashboard(request):
-    """Placeholder student dashboard."""
+    """The student's learning: every course they are enrolled on,
+    with its progress and the next lesson to continue with."""
+    enrolments = (
+        Enrollment.objects.filter(student=request.user)
+        .select_related("course__category", "course__instructor")
+        .order_by("-enrolled_at")
+    )
+    for enrolment in enrolments:
+        enrolment.progress = progress_percent(enrolment)
+        enrolment.next_lesson = next_lesson(enrolment)
+        enrolment.eligible = is_eligible_for_certificate(enrolment)
     return render(
         request,
-        "coming_soon.html",
-        {"title": "My learning", "message": "Your learning dashboard is coming soon."},
+        "learning/student_dashboard.html",
+        {"enrolments": enrolments},
     )
 
 
