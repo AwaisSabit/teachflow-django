@@ -340,12 +340,14 @@ def lesson_delete(request, pk):
     )
 
 
-def course_detail(request, pk):
+def course_detail(request, pk, preview=False):
     """One course: what it teaches, who teaches it, its curriculum.
 
     Published courses are open to everyone. A draft or submitted
     course is only visible to its own instructor — learners get a
-    404, so unpublished work never leaks.
+    404, so unpublished work never leaks. With preview=True the
+    page is rendered as a student sees it, for the instructor to
+    check before publishing.
     """
     if request.user.is_authenticated:
         course = get_object_or_404(
@@ -393,6 +395,7 @@ def course_detail(request, pk):
             "average_rating": course.average_rating(),
             "my_review": my_review,
             "recommendations": recommendations,
+            "preview": preview,
         },
     )
 
@@ -522,3 +525,16 @@ def announcement_delete(request, announcement_pk):
         "courses/announcement_confirm_delete.html",
         {"announcement": announcement},
     )
+
+
+@instructor_required
+def course_preview(request, pk):
+    """See one of the instructor's own courses as a student sees it.
+
+    The page is the public course page: no edit buttons, no
+    instructor tools, and enrolment shown as disabled. Drafts can
+    be previewed too, so the instructor can check the page before
+    submitting it for publishing.
+    """
+    course = get_object_or_404(Course, pk=pk, instructor=request.user)
+    return course_detail(request, pk=pk, preview=True)

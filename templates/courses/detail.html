@@ -1,12 +1,12 @@
 {% extends "base.html" %}
-{% block title %}{{ course.title }} — TeachFlow{% if is_enrolled or user == course.instructor %}
+{% block title %}{{ course.title }} — TeachFlow{% if is_enrolled or user == course.instructor and not preview %}
   <h2 class="h4 mt-5">Announcements</h2>
   {% for announcement in course.announcements.all %}
     <div class="border rounded p-2 mb-2">
       <strong>{{ announcement.title }}</strong>
       <span class="text-muted small">— {{ announcement.created_at|date:"j F Y" }}</span>
       <p class="mb-0">{{ announcement.body }}</p>
-      {% if user == course.instructor %}
+      {% if user == course.instructor and not preview %}
         <form method="post" action="{% url 'courses:announcement_delete' announcement.pk %}" class="mt-1">
           {% csrf_token %}
           <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
@@ -16,7 +16,7 @@
   {% empty %}
     <p class="text-muted">No announcements yet.</p>
   {% endfor %}
-  {% if user == course.instructor %}
+  {% if user == course.instructor and not preview %}
     <form method="post" action="{% url 'courses:announcement_create' course.pk %}" class="mt-3">
       {% csrf_token %}
       <div class="mb-2">
@@ -48,6 +48,12 @@
 {% endif %}
 {% endblock %}
 {% block content %}
+{% if preview %}
+  <div class="alert alert-info" role="alert">
+    You are previewing this course as a student sees it. Enrolment is disabled in preview.
+    <a href="{% url 'courses:detail' course.pk %}">Back to the instructor view</a>
+  </div>
+{% endif %}
 <div class="row">
   <div class="col-md-8">
     <p class="text-muted mb-1">{{ course.category.name }} · {{ course.get_level_display }} · {{ course.language }} · {{ course.section_count }} section{{ course.section_count|pluralize }} · {{ course.lesson_count }} lesson{{ course.lesson_count|pluralize }}</p>
@@ -97,13 +103,13 @@
     {% endif %}
 
     <h2 class="h4 mt-4">Course curriculum</h2>
-    {% if user.is_authenticated and user == course.instructor %}
+    {% if user.is_authenticated and user == course.instructor and not preview %}
       <p><a class="btn btn-sm btn-outline-primary" href="{% url 'courses:section_create' course.pk %}">Add a section</a></p>
     {% endif %}
     {% if course.sections.all %}
       {% for section in course.sections.all %}
         <h3 class="h5 mt-3">{{ section.order }}. {{ section.title }}
-          {% if user.is_authenticated and user == course.instructor %}
+          {% if user.is_authenticated and user == course.instructor and not preview %}
             <a class="btn btn-sm btn-outline-secondary ms-2" href="{% url 'courses:section_edit' section.pk %}">Edit</a>
             <a class="btn btn-sm btn-outline-primary ms-1" href="{% url 'courses:lesson_create' section.pk %}">Add a lesson</a>
           {% endif %}
@@ -112,7 +118,7 @@
           {% for lesson in section.lessons.all %}
             <li class="list-group-item d-flex justify-content-between align-items-center">
               <span><a href="{% url 'courses:lesson_detail' lesson.pk %}">{{ lesson.order }}. {{ lesson.title }}</a>{% if lesson.is_preview %} <span class="badge bg-info ms-1">Preview</span>{% endif %}</span>
-              {% if user.is_authenticated and user == course.instructor %}
+              {% if user.is_authenticated and user == course.instructor and not preview %}
                 <span>
                   <a class="btn btn-sm btn-outline-primary" href="{% url 'courses:lesson_edit' lesson.pk %}">Edit</a>
                 </span>
@@ -134,7 +140,9 @@
           <img src="{{ course.thumbnail_url }}" alt="Cover image for {{ course.title }}" class="img-fluid mb-3">
         {% endif %}
         <p class="h4">{% if course.is_free %}Free{% else %}Rs {{ course.price }}{% endif %}</p>
-        {% if course.is_published %}
+        {% if preview %}
+          <button type="button" class="btn btn-primary w-100" disabled>Preview mode — enrolment is disabled</button>
+        {% elif course.is_published %}
           {% if is_enrolled %}
             <p class="text-success">You are enrolled on this course.</p>
             <div class="progress mb-2" role="progressbar" aria-valuenow="{{ progress }}" aria-valuemin="0" aria-valuemax="100" aria-label="Course progress">
@@ -159,7 +167,10 @@
           {% endif %}
         {% endif %}
         <p class="text-muted small mt-2">Status: {{ course.get_status_display }}</p>
-        {% if user.is_authenticated and course.is_published %}
+        {% if user.is_authenticated and user == course.instructor and not preview %}
+          <a class="btn btn-sm btn-outline-secondary w-100 mt-2" href="{% url 'courses:preview' course.pk %}">Preview as a student</a>
+        {% endif %}
+        {% if user.is_authenticated and course.is_published and not preview %}
           <form method="post" action="{% url 'payments:wishlist_add' course.pk %}">
             {% csrf_token %}
             <button type="submit" class="btn btn-sm btn-outline-secondary w-100 mt-2">Save to wishlist</button>
